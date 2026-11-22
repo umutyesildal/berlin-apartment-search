@@ -202,6 +202,13 @@ def parse_html(text, base_url=''):
                 blocks = ('div', 'section', 'article', 'li', 'tr', 'td', 'p', 'aside', 'figure', 'main', 'body', 'html')
                 while parent is not None and parent.tag not in blocks:
                     parent = parents.get(id(parent))
+                if parent is not None:
+                    ancestor = parents.get(id(parent))
+                    while ancestor is not None and ancestor.tag not in ('main', 'body', 'html') and not any(
+                            child.tag == 'h1' for child in ancestor.walk()):
+                        if ancestor.tag in blocks:
+                            parent = ancestor
+                        ancestor = parents.get(id(ancestor))
                 if parent is not None and parent.tag not in ('main', 'body', 'html') and not any(
                         child.tag == 'h1' for child in parent.walk()):
                     excluded.add(id(parent))

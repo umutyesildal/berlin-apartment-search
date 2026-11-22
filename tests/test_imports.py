@@ -12,6 +12,16 @@ FIXTURES = ROOT / 'tests' / 'fixtures'
 
 
 class ImportTests(OfflineTest):
+    def test_nested_unrecognized_recommendation_cannot_fill_main_facts(self):
+        text = ('<main><h1>Main flat</h1><p>50 m²</p><div class="unknown-widget">'
+                '<p><a href="/expose/fictional-other">Other flat</a></p>'
+                '<div><span>Warmmiete: 1500 €; 4 Zimmer; 90 m²</span></div></div></main>')
+        rows = {row.source_id: row for row in parse_html(text, 'https://www.immowelt.de/expose/fictional-main')}
+        self.assertEqual(rows['fictional-main'].area_m2, 50)
+        self.assertIsNone(rows['fictional-main'].warm_eur)
+        self.assertIsNone(rows['fictional-main'].rooms)
+        self.assertEqual(rows['fictional-other'].warm_eur, 1500)
+
     def test_html_shell_without_listing_facts_is_not_imported_and_cli_explains(self):
         url = 'https://www.immowelt.de/expose/fictional-shell'
         for html in ('<title>Fictional apartment</title><script>loadListing()</script>',
