@@ -15,21 +15,23 @@ PATTERNS = {
 }
 
 
-def positive_matches(text, pattern):
-    clauses = re.split(r'[,.!?;:\n]|\b(?:aber|but|jedoch)\b', text, flags=re.I)
-    for clause in clauses:
-        for match in re.finditer(pattern, clause, re.I):
-            before = re.findall(r'\w+', clause[:match.start()].casefold())[-3:]
-            after = re.findall(r'\w+', clause[match.end():].casefold())[:2]
-            negated_before = any(re.fullmatch(r'kein\w*|nicht|ohne|no|not|never|without', token)
-                                 for token in before)
-            negated_after = any(re.fullmatch(r'kein\w*|nicht|not|never', token) for token in after)
-            if not negated_before and not negated_after:
-                yield match.group()
+def positive_matches(text, pattern, noise=False):
+    normalized = ' '.join(text.split())
+    prefixes = r'kein(?:e|en)?(?:\s+Zahlung\s+(?:per|als))?|ohne|no|without'
+    if noise:
+        prefixes += r'|kein(?:e|en)?\s+Wohnung\s+per|nicht|not'
+    for match in re.finditer(pattern, normalized, re.I):
+        before, after = normalized[:match.start()], normalized[match.end():]
+        negated_before = re.search(r'\b(?:' + prefixes + r')\s+$', before, re.I)
+        negated_after = re.match(
+            r'\s+(?:ist\s+)?(?:nicht\s+(?:erforderlich|nötig|notwendig|gewünscht|erwünscht|möglich)'
+            r'|keine\s+Pflicht)\b', after, re.I)
+        if not negated_before and not negated_after:
+            yield match.group()
 
 
 def classify(text):
-    return [tag for tag, pattern in PATTERNS.items() if list(positive_matches(text, pattern))]
+    return [tag for tag, pattern in PATTERNS.items() if list(positive_matches(text, pattern, noise=True))]
 
 
 if __name__ == '__main__':

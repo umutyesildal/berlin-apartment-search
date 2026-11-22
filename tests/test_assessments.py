@@ -11,6 +11,24 @@ from dedupe import group, possible_match
 
 
 class AssessmentTests(OfflineTest):
+    def test_explicit_scam_negation_does_not_cover_other_statements(self):
+        for text in ('Keine Besichtigung mit Vorkasse', 'Vorkasse nicht verhandelbar'):
+            with self.subTest(text=text):
+                self.assertEqual(scam(text)['score'], 4)
+
+    def test_multiword_scam_signals_match_across_punctuation(self):
+        self.assertEqual(scam('Schlüssel: Versand per Post')['score'], 4)
+        self.assertEqual(scam('Schlüssel:\nVersand per Post')['score'], 4)
+
+    def test_explicit_negation_phrase_variants(self):
+        for text in ('keine Vorkasse', 'keine Zahlung per Vorkasse', 'keine Zahlung als Vorkasse',
+                     'ohne Vorkasse', 'Vorkasse nicht nötig', 'Vorkasse ist nicht notwendig',
+                     'Vorkasse nicht gewünscht', 'Vorkasse nicht erwünscht', 'Vorkasse nicht möglich'):
+            with self.subTest(text=text):
+                self.assertEqual(scam(text)['score'], 0)
+        self.assertEqual(classify('keine Wohnung per Tausch'), [])
+        self.assertEqual(classify('Tauschwohnung, keine WG'), ['swap'])
+
     def test_negation_cannot_hide_signals_in_another_clause(self):
         for separator in ('. ', ', ', '; ', ': ', '! ', '? ', '\n'):
             with self.subTest(separator=separator):
