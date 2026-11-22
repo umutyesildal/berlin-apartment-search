@@ -92,9 +92,17 @@ class Guard:
                  'kleinanzeigen': 'www.kleinanzeigen.de',
                  'immoscout': 'api.mobile.immobilienscout24.de',
                  'wggesucht': 'www.wg-gesucht.de', 'wunderflats': 'wunderflats.com',
+                 'deutschewohnen': 'www.deutsche-wohnen.com',
+                 'ntfy': 'ntfy.sh', 'telegram': 'api.telegram.org',
                  'nominatim': 'nominatim.openstreetmap.org', 'transitous': 'api.transitous.org'}
         if parsed.scheme != 'https' or parsed.hostname != hosts.get(site) or parsed.port not in (None, 443):
             raise SourceError('endpoint not permitted')
+        if parsed.username or parsed.password:
+            raise SourceError('URL credentials not permitted')
+        if site in ('ntfy', 'telegram'):
+            path_pattern = r'/[A-Za-z0-9_-]{1,128}' if site == 'ntfy' else r'/bot\d+:[A-Za-z0-9_-]+/sendMessage'
+            if body is None or parsed.query or parsed.fragment or not re.fullmatch(path_pattern, parsed.path):
+                raise SourceError('notification endpoint not permitted')
         self.reserve(site)
         request_headers = {'User-Agent': 'berlin-apartment-search/0.2.0',
                            'Accept': 'text/html,application/json', 'Accept-Encoding': 'identity'}
