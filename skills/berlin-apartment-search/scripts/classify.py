@@ -16,15 +16,16 @@ PATTERNS = {
 
 
 def positive_matches(text, pattern):
-    for match in re.finditer(pattern, text, re.I):
-        prefix = re.split(r'[,.!?;:\n]|\b(?:aber|but|jedoch)\b',
-                          text[max(0, match.start() - 65):match.start()], flags=re.I)[-1]
-        suffix = re.split(r'[,.!?;:\n]|\b(?:aber|but|jedoch)\b',
-                          text[match.end():match.end() + 65], flags=re.I)[0]
-        negated_before = re.search(r'\b(?:kein\w*|nicht|ohne|no|not|never|without)\s*$', prefix, re.I)
-        negated_after = re.match(r'\s+(?:ist|wird|sind|is|are)\s+(?:nicht|kein\w*|not|never)\b', suffix, re.I)
-        if not negated_before and not negated_after:
-            yield match.group()
+    clauses = re.split(r'[,.!?;:\n]|\b(?:aber|but|jedoch)\b', text, flags=re.I)
+    for clause in clauses:
+        for match in re.finditer(pattern, clause, re.I):
+            before = re.findall(r'\w+', clause[:match.start()].casefold())[-3:]
+            after = re.findall(r'\w+', clause[match.end():].casefold())[:2]
+            negated_before = any(re.fullmatch(r'kein\w*|nicht|ohne|no|not|never|without', token)
+                                 for token in before)
+            negated_after = any(re.fullmatch(r'kein\w*|nicht|not|never', token) for token in after)
+            if not negated_before and not negated_after:
+                yield match.group()
 
 
 def classify(text):

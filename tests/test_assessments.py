@@ -16,10 +16,26 @@ class AssessmentTests(OfflineTest):
             with self.subTest(separator=separator):
                 self.assertEqual(scam('Vorkasse' + separator + 'Keine Besichtigung')['score'], 4)
                 self.assertEqual(classify('Tauschwohnung' + separator + 'keine WG'), ['swap'])
-        self.assertEqual(scam('Keine Besichtigung mit Vorkasse')['score'], 4)
-        self.assertEqual(classify('Keine WG mit Tauschwohnung'), ['swap'])
         self.assertEqual(scam('Keine Vorkasse. Vorkasse ist nicht erforderlich.')['score'], 0)
         self.assertEqual(classify('Keine Tauschwohnung, keine WG'), [])
+
+    def test_nearby_preposed_negation_within_clause(self):
+        self.assertEqual(classify('keine Wohnung per Tausch'), [])
+        self.assertEqual(scam('keine Zahlung per Vorkasse')['score'], 0)
+
+    def test_postposed_negation_without_verb(self):
+        self.assertEqual(scam('Vorkasse nicht erforderlich')['score'], 0)
+        self.assertEqual(classify('WG nicht erwünscht'), [])
+        self.assertEqual(classify('Tausch nicht möglich'), [])
+        self.assertEqual(scam('Vorkasse erforderlich')['score'], 4)
+
+    def test_negation_window_is_bounded_by_tokens_and_conjunctions(self):
+        self.assertEqual(scam('Keine Besichtigung am Wochenende verfügbar Vorkasse erforderlich')['score'], 4)
+        self.assertEqual(scam('Keine Besichtigung aber Vorkasse erforderlich')['score'], 4)
+        self.assertEqual(scam('Vorkasse erforderlich aber keine Besichtigung')['score'], 4)
+        self.assertEqual(scam('Vorkasse erforderlich heute vor Ort nicht möglich')['score'], 4)
+        self.assertEqual(classify('Tausch ist nicht möglich'), [])
+        self.assertEqual(scam('Vorkasse ist keine Pflicht')['score'], 0)
 
     def test_coordinates_use_plain_decimal_not_german_thousands(self):
         item = normalize(Listing('a', '1', '', 'A', latitude='52.500', longitude='13.400', cold_eur='1.250'))
