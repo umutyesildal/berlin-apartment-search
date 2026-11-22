@@ -4,6 +4,7 @@ import argparse
 import json
 import re
 from pathlib import Path
+from private_paths import private_directory
 from integrity import check
 
 
@@ -64,7 +65,7 @@ def main(argv=None):
         target.relative_to(Path('flat-search').resolve())
         text = render(json.loads(args.profile.read_text(encoding='utf-8')),
                       args.ad.read_text(encoding='utf-8') if args.ad else '', args.template)
-        target.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+        private_directory(target.parent)
         with target.open('x', encoding='utf-8') as stream:
             stream.write(text)
         print('Draft only: ' + str(args.output))

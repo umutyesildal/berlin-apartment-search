@@ -6,6 +6,7 @@ import sqlite3
 from dataclasses import fields
 from datetime import datetime, timezone
 from pathlib import Path
+from private_paths import private_directory
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 from classify import PATTERNS
 from dedupe import possible_match
@@ -32,7 +33,7 @@ def as_listing(member):
 
 def claim_new(report, path, notification=False, dry_run=False, now=None):
     path = Path(path)
-    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    private_directory(path.parent)
     at = now or datetime.now(timezone.utc).isoformat()
     connection = sqlite3.connect(str(path), timeout=30)
     new_groups, claimed = [], []

@@ -6,6 +6,7 @@ import json
 import math
 from datetime import datetime, timezone
 from pathlib import Path
+from private_paths import private_directory
 from urllib.parse import urlencode
 from guard import Blocked, Deferred, Guard, SourceError
 
@@ -39,7 +40,7 @@ class Commute:
         if self.offline:
             raise SourceError('offline and no fresh cache')
         data = json.loads(self.guard.fetch(site, url, headers={'User-Agent': USER_AGENT, 'Accept': 'application/json'}))
-        self.directory.mkdir(parents=True, exist_ok=True, mode=0o700)
+        private_directory(self.directory)
         path.write_text(json.dumps({'at': datetime.now(timezone.utc).timestamp(), 'data': data}), encoding='utf-8')
         return data
 

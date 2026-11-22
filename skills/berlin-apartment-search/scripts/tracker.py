@@ -10,6 +10,7 @@ from contextlib import closing
 from datetime import datetime, timezone
 from functools import wraps
 from pathlib import Path
+from private_paths import private_directory
 
 
 FIELDS = ['id', 'date_added', 'last_seen', 'title', 'source', 'url', 'status', 'score', 'verdict', 'notes']
@@ -34,7 +35,7 @@ def read_rows(path):
 
 def write_rows(path, rows):
     path = Path(path)
-    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    private_directory(path.parent)
     output = io.StringIO(newline='')
     writer = csv.DictWriter(output, FIELDS + ['_encoding'])
     writer.writeheader()
@@ -54,7 +55,7 @@ def serialized(operation):
     @wraps(operation)
     def locked(path, *args, **kwargs):
         path = Path(path)
-        path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+        private_directory(path.parent)
         with closing(sqlite3.connect(str(path) + '.lock.sqlite', timeout=30)) as db:
             with db:
                 db.execute('BEGIN IMMEDIATE')

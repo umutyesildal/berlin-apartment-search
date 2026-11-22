@@ -9,6 +9,7 @@ import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+from private_paths import private_directory
 from classify import PATTERNS, classify
 from dedupe import group
 from commute import Commute, coordinates
@@ -119,7 +120,7 @@ def markdown(report):
 
 def write_report(report, directory):
     directory = Path(directory)
-    directory.mkdir(parents=True, exist_ok=True, mode=0o700)
+    private_directory(directory)
     for name, content in (('results.json', json.dumps(report, ensure_ascii=False, indent=2)),
                           ('results.md', markdown(report))):
         temporary = directory / (name + '.' + str(os.getpid()) + '.tmp')

@@ -8,6 +8,7 @@ import time
 from contextlib import contextmanager
 from http.client import HTTPException
 from pathlib import Path
+from private_paths import private_directory
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
 from urllib.request import HTTPRedirectHandler, ProxyHandler, Request, build_opener
@@ -37,7 +38,7 @@ class Guard:
 
     def __init__(self, directory='flat-search', clock=time.time, sleep=time.sleep, jitter=None):
         directory = Path(directory)
-        directory.mkdir(parents=True, exist_ok=True, mode=0o700)
+        private_directory(directory)
         self.path = directory / 'guard.sqlite'
         self.clock, self.sleep = clock, sleep
         self.jitter = jitter or (lambda: random.uniform(3, 7))
