@@ -12,6 +12,18 @@ from guard import Blocked, Deferred, Guard, SourceError
 
 
 class FitTests(OfflineTest):
+    def test_cli_validates_profile_before_scoring(self):
+        for profile in ({'districts': 7}, {'districts': 'Mitte'}, {'max_warm_eur': -1}):
+            with self.subTest(profile=profile), tempfile.TemporaryDirectory() as directory:
+                path = Path(directory) / 'profile.json'
+                path.write_text(json.dumps(profile), encoding='utf-8')
+                with patch('sys.stdin', io.StringIO('{}')), patch('fit_score.score', return_value={}) as scorer, \
+                        patch('sys.stdout', io.StringIO()), \
+                        patch('sys.stderr', io.StringIO()), self.assertRaises(SystemExit) as error:
+                    fit_main(['--profile', str(path)])
+                self.assertEqual(error.exception.code, 2)
+                scorer.assert_not_called()
+
     def test_missing_neutral_and_all_reasons(self):
         result = score({})
         self.assertEqual(result['score'], 50)
