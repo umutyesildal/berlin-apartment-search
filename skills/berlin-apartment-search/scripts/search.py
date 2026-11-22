@@ -71,7 +71,8 @@ def collect(selected, guard, max_warm=None, min_rooms=None, exclude=(), profile=
                                         costs_eur=member['costs_eur'], deposit_eur=member['deposit_eur'])
             member['commute'] = {'status': 'unknown', 'reason': 'Not requested or listing coordinates unavailable.'}
             if commute_client and commute_to and member['latitude'] is not None and member['longitude'] is not None:
-                member['commute'] = commute_client.route([member['latitude'], member['longitude']], commute_to, commute_mode)
+                member['commute'] = commute_client.route([member['latitude'], member['longitude']], commute_to, commute_mode,
+                                                        max_minutes=profile.get('max_commute_minutes'))
             member['fit'] = score(member, profile, weights)
     return {'generated_at': datetime.now(timezone.utc).isoformat(),
             'sources': statuses, 'listing_count': len(listings), 'groups': clusters}
