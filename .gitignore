@@ -1,0 +1,8 @@
+/flat-search/
+__pycache__/
+*.py[cod]
+.DS_Store
+.venv/
+dist/
+.env
+CLAUDE.local.md
