@@ -1,10 +1,10 @@
 name: Bug report
-description: Report a reproducible problem without private listing/user data
+description: Report a reproducible problem using fictional data only
 body:
   - type: textarea
     id: reproduction
     attributes:
       label: Reproduction with synthetic data
-      description: Include Python version, command and redacted error. No private records.
+      description: Include the skill version or commit, Python/OS version, exact command and sanitized error. No private records or credentials. Report vulnerabilities using SECURITY.md instead.
     validations:
       required: true
