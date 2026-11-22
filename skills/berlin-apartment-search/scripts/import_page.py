@@ -51,10 +51,22 @@ def from_text(text, url, title='', allow_unknown=False):
     amount = r'([\d][\d.,\u00a0 ]*)' + gap + r'(?:€|EUR)'
     labels = {'cold_eur': 'Kaltmiete|Nettokaltmiete', 'warm_eur': 'Warmmiete|Gesamtmiete',
               'costs_eur': 'Nebenkosten|Betriebskosten', 'deposit_eur': 'Kaution'}
+    lines = text.splitlines()
+    any_label = r'\b(?:' + '|'.join(labels.values()) + r')\b'
     for field, label in labels.items():
-        match = re.search(amount + gap + r'(?:' + label + r')\b', text, re.I)
-        if not match:
-            match = re.search(r'(?:' + label + r')' + gap + ':' + '?' + gap + amount, text, re.I)
+        match = None
+        for pattern in (amount + gap + r'(?:' + label + r')\b',
+                        r'\b(?:' + label + r')' + gap + ':?' + gap + amount):
+            match = next((found for line in lines for found in [re.search(pattern, line, re.I)] if found), None)
+            if match:
+                break
+        if match is None:
+            for line, following in zip(lines, lines[1:]):
+                if (re.fullmatch(gap + r'(?:' + label + r')' + gap + ':' + gap, line, re.I)
+                        and not re.search(any_label, following, re.I)):
+                    match = re.match(gap + amount, following, re.I)
+                    if match:
+                        break
         if match:
             setattr(listing, field, match.group(1))
     if not any(getattr(listing, field) is not None for field in labels):

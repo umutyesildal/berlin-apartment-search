@@ -12,6 +12,20 @@ FIXTURES = ROOT / 'tests' / 'fixtures'
 
 
 class ImportTests(OfflineTest):
+    def test_colon_only_rent_label_accepts_only_its_immediate_unlabelled_amount_line(self):
+        url = 'https://www.immowelt.de/expose/fictional-lines'
+        for text, expected in [('Warmmiete:\n900 €', (None, 900)),
+                               (' Warmmiete: \r\n 900 EUR', (None, 900)),
+                               ('Kaltmiete:\n900 € Warmmiete', (None, 900)),
+                               ('Warmmiete:\n700 € Kaltmiete', (700, None)),
+                               ('Warmmiete\n900 €', (None, None)),
+                               ('Warmmiete: extra\n900 €', (None, None)),
+                               ('Warmmiete:\n\n900 €', (None, None)),
+                               ('700 € Kaltmiete\n900 € Warmmiete', (700, 900))]:
+            with self.subTest(text=text):
+                row = parse_text(text, url)[0]
+                self.assertEqual((row.cold_eur, row.warm_eur), expected)
+
     def test_partial_jsonld_preserves_description_facts_unless_structured_value_is_known(self):
         base = {'@type': 'Apartment', 'url': 'https://www.immowelt.de/expose/fictional-partial',
                 'name': 'Fictional flat', 'description': '50 m²; 2 Zimmer; 900 EUR; 10115 Berlin'}
