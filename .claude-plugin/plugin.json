@@ -1,7 +1,7 @@
 {
   "name": "berlin-apartment-search",
   "displayName": "Berlin Apartment Search",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Local-first Berlin rental search, triage and scam/rent orientation.",
   "author": {"name": "Umut Yesildal", "url": "https://github.com/umutyesildal"},
   "homepage": "https://github.com/umutyesildal/berlin-apartment-search",

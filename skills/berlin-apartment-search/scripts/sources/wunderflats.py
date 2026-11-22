@@ -34,7 +34,7 @@ def parse(text):
             except ValueError as error:
                 raise SourceError('invalid Wunderflats JSON-LD') from error
             for apartment in apartments(data):
-                metadata[str(apartment.get('name') or '')] = apartment
+                metadata.setdefault(str(apartment.get('name') or ''), []).append(apartment)
     cards = [node for node in root.walk() if node.tag == 'article' and 'Listing' in node.attrs.get('class', '').split()]
     output, seen = [], set()
     for card in cards:
@@ -52,7 +52,8 @@ def parse(text):
         title = next((node.text() for node in nodes if node.tag in ('h2', 'h3')), '') or link.attrs.get('title', '')
         if not title:
             raise SourceError('Wunderflats card missing title')
-        data = metadata.get(title, {})
+        candidates = metadata.get(title, [])
+        data = candidates[0] if len(candidates) == 1 else {}
         def field(token):
             return next((node.text() for node in nodes if token in node.attrs.get('class', '').split()), '')
         price = field('ListingPrice-price')

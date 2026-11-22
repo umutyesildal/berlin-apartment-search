@@ -17,6 +17,7 @@ class FitTests(OfflineTest):
         self.assertEqual(set(result['factors']), set(WEIGHTS))
         self.assertTrue(all(f['status'] == 'unknown' and f['reason'] for f in result['factors'].values()))
         self.assertEqual(score({'scam': {'score': 20}, 'rent': {'costs_review': True}}), result)
+        self.assertEqual(score({'costs_eur': 0, 'area_m2': 50})['factors']['costs']['points'], 0)
 
     def test_preferences_dates_and_commute(self):
         profile = {'max_warm_eur': 1200, 'min_area_m2': 50, 'min_rooms': 2, 'districts': ['Mitte'],
@@ -34,7 +35,7 @@ class FitTests(OfflineTest):
         overrides = dict.fromkeys(WEIGHTS, 0)
         overrides['budget'] = 1
         self.assertEqual(score({'warm_eur': 500}, {'max_warm_eur': 1000}, overrides)['score'], 100)
-        for invalid in ({'bad': 1}, {'budget': -1}, {'budget': float('nan')}, dict.fromkeys(WEIGHTS, 0)):
+        for invalid in ([], {'bad': 1}, {'budget': -1}, {'budget': float('nan')}, dict.fromkeys(WEIGHTS, 0)):
             with self.assertRaises(ValueError):
                 score({}, weights=invalid)
         with patch('sys.stdin', io.StringIO('{}')), patch('sys.stdout', io.StringIO()) as out:

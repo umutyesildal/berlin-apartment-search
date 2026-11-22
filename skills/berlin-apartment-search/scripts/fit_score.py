@@ -24,6 +24,8 @@ def positive(value):
 
 def weights_from(overrides=None):
     weights = dict(WEIGHTS)
+    if overrides is not None and not isinstance(overrides, dict):
+        raise ValueError('weights must be a JSON object')
     for name, value in (overrides or {}).items():
         if name not in weights or isinstance(value, bool) or not isinstance(value, (int, float)):
             raise ValueError('invalid weight: ' + name)
@@ -67,7 +69,9 @@ def score(listing, profile=None, weights=None, now=None):
         known('value', 50 + 100 * (1 - cold / area / benchmark),
               'Cold %.2f EUR/m² vs user-supplied value benchmark %.2f; not a legal comparison.' % (cold / area, benchmark))
     costs = positive(listing.get('costs_eur'))
-    if area and costs:
+    if listing.get('costs_eur') == 0 and not isinstance(listing.get('costs_eur'), bool):
+        costs = 0
+    if area and costs is not None:
         known('costs', 100 if 0.8 <= costs / area <= 6 else 0,
               'Ancillary %.2f EUR/m²; broad heuristic band 0.80–6.00, not a bill forecast.' % (costs / area))
     try:

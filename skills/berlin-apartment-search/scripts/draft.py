@@ -14,7 +14,7 @@ FACTS = {'full_name', 'household_size', 'employment', 'income_statement', 'move_
 
 def codeword(text):
     pattern = (r'(?:start\s+(?:your\s+|the\s+)?(?:message|application)\s+with|'
-               r'beginne[n]?\s+(?:Sie\s+|deine\s+|die\s+)?Nachricht\s+mit|'
+               r'beginne[n]?\s+(?:Sie\s+)?(?:(?:deine|die|Ihre)\s+)?Nachricht\s+mit|'
                r'codewort\s*:)\s*[:\-]?\s*["“„\x27]([^"”\x27\n]{1,60})["”\x27]')
     match = re.search(pattern, text, re.I)
     if not match:

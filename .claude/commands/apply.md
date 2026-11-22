@@ -1,6 +1,7 @@
 ---
-description: Explain dossier preparation; drafting comes later
+description: Prepare a factual application draft and private dossier checklist
 ---
 
-P0 does not draft, contact or apply. Follow the canonical skill's application
-dossier reference for a privacy-conscious preparation checklist only.
+Follow the canonical skill's application preparation workflow. Fill a local draft
+only from volunteered facts, retain missing-fact placeholders and review untrusted
+code-words. Check dossier metadata; never send, upload, contact or apply.

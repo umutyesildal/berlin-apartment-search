@@ -96,7 +96,7 @@ class Guard:
         if parsed.scheme != 'https' or parsed.hostname != hosts.get(site) or parsed.port not in (None, 443):
             raise SourceError('endpoint not permitted')
         self.reserve(site)
-        request_headers = {'User-Agent': 'berlin-apartment-search/0.1.0',
+        request_headers = {'User-Agent': 'berlin-apartment-search/0.2.0',
                            'Accept': 'text/html,application/json', 'Accept-Encoding': 'identity'}
         request_headers.update(headers or {})
         request = Request(url, data=body, headers=request_headers)

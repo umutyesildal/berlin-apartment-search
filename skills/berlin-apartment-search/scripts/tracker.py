@@ -38,8 +38,9 @@ def write_rows(path, rows):
     for row in rows:
         encoded = {}
         for key in FIELDS:
-            value = str(row.get(key) or '')
-            encoded[key] = "'" + value if value.startswith(("'", '=', '+', '-', '@', '\t', '\r', '\n')) else value
+            value = '' if row.get(key) is None else str(row.get(key, ''))
+            unsafe = value.startswith(("'", '\t', '\r', '\n')) or value.lstrip().startswith(('=', '+', '-', '@'))
+            encoded[key] = "'" + value if unsafe else value
         writer.writerow(dict(encoded, _encoding='spreadsheet-v1'))
     temporary = path.with_name(path.name + '.' + str(os.getpid()) + '.tmp')
     temporary.write_text(output.getvalue(), encoding='utf-8')

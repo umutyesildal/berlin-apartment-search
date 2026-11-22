@@ -1,10 +1,11 @@
+import io
 import json
 import tempfile
 from pathlib import Path
-from unittest.mock import Mock
-from support import OfflineTest, fixture
+from unittest.mock import Mock, patch
+from support import OfflineTest, fixture, working_directory
 from guard import Blocked, SourceError
-from report import render, write
+from report import main as report_main, render, write
 from sources import wggesucht, wunderflats
 
 
@@ -25,6 +26,13 @@ class NewSourceTests(OfflineTest):
         self.assertIsNone(wf.warm_eur)
         self.assertNotIn('tracking=', wf.url)
 
+    def test_duplicate_metadata_names_are_not_assigned_to_wrong_flat(self):
+        text = fixture('wunderflats.html').replace('},' + '{"@type":"AggregateOffer"',
+            '},{"@type":"Apartment","name":"Fictional furnished apartment","floorSize":200},' + '{"@type":"AggregateOffer"')
+        row = wunderflats.parse(text)[0]
+        self.assertIsNone(row.area_m2)
+        self.assertIsNone(row.rooms)
+
     def test_explicit_empty_errors_and_blocks(self):
         for adapter, empty in ((wggesucht, 'Keine Angebote gefunden'), (wunderflats, 'No apartments found')):
             self.assertEqual(adapter.parse('<html>' + empty + '</html>'), [])
@@ -39,6 +47,17 @@ class NewSourceTests(OfflineTest):
 
 
 class ReportTests(OfflineTest):
+    def test_cli_writes_and_reports_invalid_input(self):
+        with tempfile.TemporaryDirectory() as directory, working_directory(directory):
+            path = Path(directory) / 'results.json'
+            path.write_text('{"groups":[]}')
+            with patch('sys.stdout', io.StringIO()):
+                self.assertEqual(report_main([str(path)]), 0)
+            self.assertTrue((Path(directory) / 'flat-search/shortlist.html').is_file())
+            path.write_text('not JSON')
+            with patch('sys.stderr', io.StringIO()), self.assertRaises(SystemExit):
+                report_main([str(path)])
+
     def test_escape_flags_duplicates_links_and_write(self):
         member = {'title': '<script>alert(1)</script>[bad](url)', 'url': 'https://example.test/a?q="<bad>',
                   'fit': {'score': 75}, 'scam': {'review': '<img src=x>'}, 'rent': {'costs_review': True}}

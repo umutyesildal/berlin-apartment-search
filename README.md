@@ -2,7 +2,13 @@
 
 A local-first apartment-search skill for Berlin. Search public offers from
 InBerlinWohnen and Kleinanzeigen, triage unsuitable ads, and check rental costs
-and scam signals. Python 3.9+, standard library only. P0, version 0.1.0.
+and scam signals. Python 3.9+, standard library only. P1, version 0.2.0.
+
+Features: transparent fit scores; optional cached public-transit/bike estimates;
+a local application tracker; factual contact/cover-letter drafts and dossier
+readiness checks; escaped Markdown/HTML shortlists; municipal, classifieds,
+WG-Gesucht and Wunderflats search. Furnished temporary rentals are tagged, not
+treated as equivalent to a normal long-term flat.
 
 ## What it does
 
@@ -48,20 +54,63 @@ python3 skills/berlin-apartment-search/scripts/search.py --source kleinanzeigen 
 python3 skills/berlin-apartment-search/scripts/search.py --help
 ```
 
-With no `--source`, the CLI fans out once to all P0 adapters. See
+With no `--source`, the CLI fans out once to all adapters. See
 [source methods and limitations](skills/berlin-apartment-search/references/sources.md)
 before running. Local filters are not a completeness guarantee: only the first
 page is fetched. Unknown rent/room values remain visible for manual review.
 Use `--exclude swap,wg,sublet,wanted,furnished,temporary` to hide tagged noise;
-the default keeps it visible. The profile is an interview aid, not parsed YAML.
-CLI arguments control search filters.
+the default keeps it visible. YAML is an interview aid; copy
+[the JSON profile](skills/berlin-apartment-search/assets/profile.template.json)
+to `flat-search/profile.json` for CLI scoring and drafts. CLI arguments control
+hard search filters; profile preferences only influence fit.
 
 Results: `flat-search/results.json`, `flat-search/results.md`; guard state:
 `flat-search/guard.sqlite`. Source status is always reported, including partial
 failures. Exit 0 means all selected sources returned valid results (possibly
 empty), 1 means a blocked/deferred/error source, and 2 is invalid CLI input.
-Markdown deliberately renders external text as escaped plain text, not trusted
-instructions or embedded links. Open URLs manually after inspection.
+Search also writes `flat-search/shortlist.md` and `flat-search/shortlist.html`.
+External text is escaped, not trusted instructions. Shortlist links accept HTTPS
+only; inspect URLs before opening. The HTML uses no remote assets or scripts.
+
+## P1 local tools
+
+```bash
+python3 skills/berlin-apartment-search/scripts/search.py --source wggesucht --profile flat-search/profile.json --weights '{"budget":35}'
+python3 skills/berlin-apartment-search/scripts/search.py --source wunderflats
+python3 skills/berlin-apartment-search/scripts/report.py flat-search/results.json
+python3 skills/berlin-apartment-search/scripts/tracker.py import flat-search/results.json
+python3 skills/berlin-apartment-search/scripts/tracker.py list
+python3 skills/berlin-apartment-search/scripts/draft.py --profile flat-search/profile.json --ad flat-search/ad.txt --template contact-de-sie
+python3 skills/berlin-apartment-search/scripts/dossier.py flat-search/profile.json
+python3 skills/berlin-apartment-search/scripts/commute.py --origin "Alexanderplatz Berlin" --to-coordinates 52.5251 13.3694
+```
+
+Fit is 0–100 with a reason per factor. Missing inputs stay neutral at 50, so 50
+may mean entirely unknown, not medium quality. Scam/rent/integrity flags remain
+separate. Default factor weights are at the top of `fit_score.py`; override them
+with `--weights` JSON. `value_eur_m2` is an optional user-supplied cold-rent value
+benchmark, not a legal determination. Freshness requires an ISO `posted_at` date.
+
+Commute is opt-in: search accepts `--commute-to LAT LON` and
+`--commute-mode transit|bike`, using existing listing coordinates only. Public
+place geocoding sends the query to Nominatim; routing sends coordinates to
+Transitous. Do not send a private home/work address without consent. Requests
+are guarded, identifying and cached; Nominatim has a minimum 1-second gap
+(normally the longer guard jitter), no autocomplete or bulk mode. `--offline`
+on `commute.py` uses cache only. Geocodes cache for 30 days; departure-bucketed
+routes for one day. Unknown/offline/deferred never becomes a made-up travel time.
+
+Draft templates: German **Sie** for flats, German **du** for WGs, English and a
+German cover letter. Missing facts remain `[PLACEHOLDER]` fields. Output is a
+new local file only; verify facts and any extracted code-word before sending
+yourself. The draft command refuses overwrites. Dossier checks use issued-date
+metadata, not document contents. Three-month SCHUFA freshness is a preparation
+heuristic, not a universal legal expiry.
+
+Tracker states: pending → contacted → viewing → applied → offer, with rejected
+or dead terminal states. `tracker.py status SOURCE:ID contacted --note "..."`
+records only a user-confirmed action. Refetch/import updates source metadata,
+not the user's verdict, notes or status. CSV and event history stay private.
 
 ## Safety and scope
 
@@ -72,8 +121,8 @@ cooldowns. HTTP 403/429, challenge pages and unrecognized/empty response shapes
 are never silently treated as empty inventory. Do not delete guard state to
 evade limits. Public access can break; use your own browser when blocked.
 
-P1/P2 application drafting, tracker, commute scoring, scheduling, alert ingestion
-and additional sources are not implemented. You make all applications yourself.
+Scheduling, alert ingestion and automatic sending are not implemented.
+You make all contacts and applications yourself.
 All implementation is original; no research-project code was copied.
 
 ## Develop

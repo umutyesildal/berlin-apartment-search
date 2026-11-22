@@ -64,10 +64,12 @@ class Commute:
             if mode not in ('transit', 'bike'):
                 raise ValueError('mode must be transit or bike')
             departure = at or datetime.now(timezone.utc).replace(second=0, microsecond=0)
+            if departure.tzinfo is None:
+                departure = departure.replace(tzinfo=timezone.utc)
             departure = departure.replace(minute=(departure.minute // 15) * 15)
             params = {'fromPlace': ','.join(map(str, start)), 'toPlace': ','.join(map(str, end)),
                       'mode': 'BICYCLE' if mode == 'bike' else 'TRANSIT,WALK',
-                      'date': departure.strftime('%Y-%m-%d'), 'time': departure.strftime('%H:%M'),
+                      'time': departure.isoformat(),
                       'numItineraries': 1}
             data = self.cached('transitous', 'https://api.transitous.org/api/v1/plan?' + urlencode(params), 86400)
             itineraries = data.get('itineraries', data.get('plan', {}).get('itineraries', []))
