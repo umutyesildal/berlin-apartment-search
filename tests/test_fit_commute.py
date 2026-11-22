@@ -3,6 +3,7 @@ import json
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import parse_qs, urlsplit
 from unittest.mock import Mock, patch
 from support import OfflineTest
 from commute import Commute, coordinates, main as commute_main
@@ -44,6 +45,23 @@ class FitTests(OfflineTest):
 
 
 class CommuteTests(OfflineTest):
+    def test_bike_uses_direct_bike_routes_not_transit_itineraries(self):
+        with tempfile.TemporaryDirectory() as directory:
+            guard = Mock()
+            guard.fetch.return_value = json.dumps({'direct': [{'duration': 900, 'legs': [{'mode': 'BIKE'}]}],
+                                                  'itineraries': [{'duration': 120, 'legs': [{'mode': 'BUS'}]}]})
+            result = Commute(guard, directory).route([52, 13], [52.1, 13.1], mode='bike')
+            self.assertEqual(result['minutes'], 15)
+            query = parse_qs(urlsplit(guard.fetch.call_args.args[1]).query, keep_blank_values=True)
+            self.assertEqual(query['directModes'], ['BIKE'])
+            self.assertEqual(query['transitModes'], [''])
+
+    def test_bike_without_direct_bike_result_is_unknown(self):
+        with tempfile.TemporaryDirectory() as directory:
+            guard = Mock()
+            guard.fetch.return_value = json.dumps({'direct': [], 'itineraries': [{'duration': 120}]})
+            self.assertEqual(Commute(guard, directory).route([52, 13], [52.1, 13.1], mode='bike')['status'], 'unknown')
+
     def test_geocode_route_cache_and_offline(self):
         with tempfile.TemporaryDirectory() as directory:
             guard = Mock()
