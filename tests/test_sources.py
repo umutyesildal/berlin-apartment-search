@@ -7,6 +7,12 @@ from sources.html_tools import Document
 
 
 class SourceTests(OfflineTest):
+    def test_negative_wbs_answers_are_not_requirements(self):
+        for answer in ('Nein', 'NEIN', 'nicht erforderlich', 'ohne WBS', 'kein WBS nötig', 'Ja'):
+            with self.subTest(answer=answer):
+                text = fixture('inberlinwohnen.html').replace('nicht erforderlich', answer)
+                self.assertEqual(inberlinwohnen.parse(text)[0].wbs, answer == 'Ja')
+
     def test_livewire_nested_markers(self):
         rows = inberlinwohnen.parse(fixture('inberlinwohnen.html'))
         self.assertEqual(len(rows), 1)

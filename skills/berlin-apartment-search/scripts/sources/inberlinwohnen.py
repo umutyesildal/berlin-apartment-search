@@ -56,7 +56,7 @@ def parse(text):
             raise SourceError('invalid snapshot address')
         details = dict(detail_pairs(item.get('details', [])))
         wbs_text = details.get('wbs', '').casefold()
-        wbs = None if not wbs_text else not any(s in wbs_text for s in ('nicht', 'kein', 'ohne'))
+        wbs = None if not wbs_text else not any(s in wbs_text for s in ('nein', 'nicht', 'kein', 'ohne'))
         listing = Listing(NAME, str(item['id']), item.get('deeplink', ''), item['title'],
                           district=address.get('district', ''), postcode=address.get('zipCode', ''),
                           street=' '.join(str(address.get(k) or '') for k in ('street', 'number')).strip(),
