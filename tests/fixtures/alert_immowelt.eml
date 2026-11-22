@@ -1,0 +1,19 @@
+From: alerts@example.test
+To: fictional-user@example.test
+Subject: Fictional saved search
+MIME-Version: 1.0
+Content-Type: multipart/alternative; boundary="fictional-boundary"
+
+--fictional-boundary
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+
+Fictional apartment
+Warmmiete: 900 EUR; 50 m2; 2 Zimmer; 10115 Berlin
+https://www.immowelt.de/expose/fictional-101
+
+--fictional-boundary
+Content-Type: text/html; charset=utf-8
+
+<html><body><article><h2>Fictional apartment</h2><a href="https://www.immowelt.de/expose/fictional-101?utm_source=alert">Open offer</a><p>Warmmiete: 900 EUR; 50 m²; 2 Zimmer; 10115 Berlin</p></article></body></html>
+--fictional-boundary--
