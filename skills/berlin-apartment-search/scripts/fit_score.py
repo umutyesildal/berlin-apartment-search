@@ -99,7 +99,7 @@ def main(argv=None):
     parser.add_argument('--weights', default='{}', help='JSON dict of factor weight overrides')
     args = parser.parse_args(argv)
     try:
-        profile = json.loads(args.profile.read_text()) if args.profile else {}
+        profile = json.loads(args.profile.read_text(encoding='utf-8')) if args.profile else {}
         print(json.dumps(score(json.load(sys.stdin), profile, json.loads(args.weights)), ensure_ascii=False))
         return 0
     except (OSError, ValueError, TypeError, AttributeError) as error:

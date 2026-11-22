@@ -68,11 +68,18 @@ class Commute:
                 departure = departure.replace(tzinfo=timezone.utc)
             departure = departure.replace(minute=(departure.minute // 15) * 15)
             params = {'fromPlace': ','.join(map(str, start)), 'toPlace': ','.join(map(str, end)),
-                      'mode': 'BICYCLE' if mode == 'bike' else 'TRANSIT,WALK',
+                      'directModes': 'BIKE' if mode == 'bike' else 'WALK',
                       'time': departure.isoformat(),
                       'numItineraries': 1}
+            if mode == 'bike':
+                params['transitModes'] = ''
             data = self.cached('transitous', 'https://api.transitous.org/api/v1/plan?' + urlencode(params), 86400)
-            itineraries = data.get('itineraries', data.get('plan', {}).get('itineraries', []))
+            if mode == 'bike':
+                itineraries = [item for item in data.get('direct', [])
+                               if any(leg.get('mode') == 'BIKE' for leg in item.get('legs', []))
+                               and all(leg.get('mode') in ('BIKE', 'WALK') for leg in item.get('legs', []))]
+            else:
+                itineraries = data.get('itineraries', data.get('plan', {}).get('itineraries', []))
             durations = [float(item['duration']) / 60 for item in itineraries if 'duration' in item]
             durations = [value for value in durations if math.isfinite(value) and value >= 0]
             if not durations:

@@ -29,10 +29,6 @@ def collect(selected, guard, max_warm=None, min_rooms=None, exclude=(), profile=
             commute_client=None, commute_to=None, commute_mode='transit', assess=True):
     weights = weights_from(weights)
     profile = dict(profile or {})
-    if max_warm is not None:
-        profile['max_warm_eur'] = max_warm
-    if min_rooms is not None:
-        profile['min_rooms'] = min_rooms
     listings, statuses = [], {}
     for name in selected:
         try:
@@ -149,7 +145,7 @@ def main(argv=None):
     parser.add_argument('--commute-mode', choices=('transit', 'bike'), default='transit')
     args = parser.parse_args(argv)
     try:
-        profile = json.loads(args.profile.read_text()) if args.profile else {}
+        profile = json.loads(args.profile.read_text(encoding='utf-8')) if args.profile else {}
         if not isinstance(profile, dict):
             raise ValueError('profile must be a JSON object')
         weights = weights_from(json.loads(args.weights))
