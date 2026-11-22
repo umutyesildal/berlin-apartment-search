@@ -11,6 +11,13 @@ from dedupe import group, possible_match
 
 
 class AssessmentTests(OfflineTest):
+    def test_wrapped_phrases_match_after_whitespace_normalization(self):
+        self.assertEqual(classify('Suche\nWohnung'), ['wanted'])
+        self.assertEqual(scam('Western\nUnion')['score'], 5)
+        self.assertEqual(classify('Suche\n\nWohnung'), [])
+        self.assertEqual(scam('Western\n\nUnion')['score'], 0)
+        self.assertEqual(scam('Vermieter wohnt hier. Ausland ausgeschlossen')['score'], 0)
+
     def test_attached_nicht_with_optional_preposition(self):
         self.assertEqual(classify('nicht als WG'), [])
         self.assertEqual(classify('nicht per Tausch'), [])
@@ -20,7 +27,7 @@ class AssessmentTests(OfflineTest):
         self.assertEqual(scam('Vorkasse nicht verhandelbar')['score'], 4)
 
     def test_scam_gap_patterns_do_not_cross_sentence_boundaries(self):
-        for separator in ('. ', '! ', '? ', '\n'):
+        for separator in ('. ', '! ', '? ', '\n\n', '\n \n'):
             with self.subTest(separator=separator):
                 self.assertEqual(scam('Vermieter wohnt hier' + separator + 'Ausland ausgeschlossen')['score'], 0)
                 self.assertEqual(scam('Schlüssel bleiben hier' + separator + 'Post ausgeschlossen')['score'], 0)
@@ -35,7 +42,7 @@ class AssessmentTests(OfflineTest):
 
     def test_multiword_scam_signals_match_across_punctuation(self):
         self.assertEqual(scam('Schlüssel: Versand per Post')['score'], 4)
-        self.assertEqual(scam('Schlüssel:\nVersand per Post')['score'], 0)
+        self.assertEqual(scam('Schlüssel:\nVersand per Post')['score'], 4)
 
     def test_explicit_negation_phrase_variants(self):
         for text in ('keine Vorkasse', 'keine Zahlung per Vorkasse', 'keine Zahlung als Vorkasse',

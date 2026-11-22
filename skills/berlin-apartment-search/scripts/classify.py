@@ -16,7 +16,8 @@ PATTERNS = {
 
 
 def positive_matches(text, pattern, noise=False):
-    normalized = re.sub(r'[^\S\n]+', ' ', text.replace('\r\n', '\n').replace('\r', '\n'))
+    paragraphs = re.split(r'\n\s*\n', text.replace('\r\n', '\n').replace('\r', '\n'))
+    normalized = '\n\n'.join(' '.join(paragraph.split()) for paragraph in paragraphs)
     prefixes = r'kein(?:e|en)?(?:\s+Zahlung\s+(?:per|als))?|ohne|nicht(?:\s+(?:als|per))?|no|without'
     if noise:
         prefixes += r'|kein(?:e|en)?\s+Wohnung\s+per|not'
