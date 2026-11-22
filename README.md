@@ -5,7 +5,7 @@ Berlin rental apartments. Search public offers, compare fit and costs, spot
 warning signs, and prepare your next steps without handing over control of your
 applications.
 
-**Python 3.9+ · standard library only · MIT · version 0.3.0**
+**Python 3.9+ · standard library only · MIT · version 0.3.1**
 
 English is the canonical documentation. [German translation](README.de.md).
 

@@ -5,7 +5,7 @@ Prüfung von Berliner Mietwohnungen. Öffentliche Angebote finden, Eignung und
 Kosten vergleichen, Warnsignale erkennen und nächste Schritte vorbereiten —
 ohne die Kontrolle über deine Bewerbungen abzugeben.
 
-**Python 3.9+ · nur Standardbibliothek · MIT · Version 0.3.0**
+**Python 3.9+ · nur Standardbibliothek · MIT · Version 0.3.1**
 
 Dies ist die deutsche Übersetzung. Maßgeblich ist die [englische Dokumentation](README.md).
 

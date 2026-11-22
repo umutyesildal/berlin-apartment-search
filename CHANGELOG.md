@@ -3,6 +3,19 @@
 User-visible changes to Berlin Apartment Search. Versions describe the skill
 and plugin manifests; marketplace availability is not implied.
 
+## 0.3.1
+
+### Fixed
+
+- Allowlisted skill archive contents and excluded nested private data,
+  environment files, databases and Python caches from both archive formats.
+- Preserved saved HTML block boundaries so definition-list and table rent
+  labels retain their own amounts.
+- Shared profile validation across search, watch and standalone fit scoring;
+  invalid search preferences are rejected before network access.
+- Ignored private data directories at every depth and `.env.*` variants,
+  while keeping `.env.example` available for public examples.
+
 ## 0.3.0
 
 ### Added

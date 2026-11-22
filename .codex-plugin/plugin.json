@@ -1,6 +1,6 @@
 {
   "name": "berlin-apartment-search",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Local-first Berlin rental search, fit and safety reviews, application drafts, new-listing watches and offline imports.",
   "author": {"name": "Umut Yesildal", "url": "https://github.com/umutyesildal"},
   "homepage": "https://github.com/umutyesildal/berlin-apartment-search",

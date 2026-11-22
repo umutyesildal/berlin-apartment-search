@@ -5,7 +5,7 @@ license: MIT
 compatibility: Scripts need Python 3.9+ and the standard library; live search needs HTTPS access. Offline assessment works without network.
 metadata:
   author: umutyesildal
-  version: "0.3.0"
+  version: "0.3.1"
   data-as-of: "2026-11-22"
 ---
 

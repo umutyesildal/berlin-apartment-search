@@ -23,7 +23,7 @@ The mobile query maps CLI `--max-warm` to `price=-N` with
 `-firstactivation`; website URLs are not accepted. Local filters apply again to
 all normalized records, keeping unknowns for review. No arbitrary URL fetching.
 
-Default HTML User-Agent is transparent: `berlin-apartment-search/0.3.0`.
+Default HTML User-Agent is transparent: `berlin-apartment-search/0.3.1`.
 HTTPS only; fixed adapter endpoints; automatic redirects and environment proxies
 disabled; 30-second timeout and 5 MiB response cap. Unexpected redirects/errors
 are reported, not followed. The app User-Agent above is the sole protocol-specific

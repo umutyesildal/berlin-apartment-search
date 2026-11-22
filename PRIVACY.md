@@ -1,6 +1,6 @@
 # Privacy
 
-Version 0.3.0 (2026). The Python tools have no telemetry or hosted backend. Live search
+Version 0.3.1 (2026). The Python tools have no telemetry or hosted backend. Live search
 sends a request and optional search filters to each selected portal, exposing
 your network address to it. The portal's own policies apply. Local profiles,
 results and guard state belong in gitignored ./flat-search/. No data is sent to
