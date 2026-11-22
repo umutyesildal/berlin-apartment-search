@@ -47,13 +47,14 @@ def from_text(text, url, title='', allow_unknown=False):
     source, identifier, url = found
     text = text[:40000]
     listing = Listing(source, identifier, url, title[:500] or 'Imported offer', text=text)
-    amount = r'([\d][\d.,\u00a0 ]*)\s*(?:€|EUR)'
+    gap = r'[ \t\u00a0]*'
+    amount = r'([\d][\d.,\u00a0 ]*)' + gap + r'(?:€|EUR)'
     labels = {'cold_eur': 'Kaltmiete|Nettokaltmiete', 'warm_eur': 'Warmmiete|Gesamtmiete',
               'costs_eur': 'Nebenkosten|Betriebskosten', 'deposit_eur': 'Kaution'}
     for field, label in labels.items():
-        match = re.search(r'(?:' + label + r')\s*:?\s*' + amount, text, re.I)
+        match = re.search(amount + gap + r'(?:' + label + r')\b', text, re.I)
         if not match:
-            match = re.search(amount + r'\s*(?:' + label + r')\b', text, re.I)
+            match = re.search(r'(?:' + label + r')' + gap + ':' + '?' + gap + amount, text, re.I)
         if match:
             setattr(listing, field, match.group(1))
     if not any(getattr(listing, field) is not None for field in labels):

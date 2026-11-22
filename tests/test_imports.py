@@ -12,6 +12,17 @@ FIXTURES = ROOT / 'tests' / 'fixtures'
 
 
 class ImportTests(OfflineTest):
+    def test_rent_labels_stay_on_their_line_and_prefer_amount_before_label(self):
+        url = 'https://www.immowelt.de/expose/fictional-rent'
+        for text in ('700 € Kaltmiete\n900 € Warmmiete', '700 € Kaltmiete\r\n900 € Warmmiete',
+                     '700 € Kaltmiete 900 € Warmmiete', 'Kaltmiete: 700 €\nWarmmiete: 900 €'):
+            with self.subTest(text=text):
+                row = parse_text(text, url)[0]
+                self.assertEqual((row.cold_eur, row.warm_eur), (700, 900))
+        row = parse_text('Kaltmiete\n900 €', url)[0]
+        self.assertIsNone(row.cold_eur)
+        self.assertEqual(row.asking_eur, 900)
+
     def test_mime_alternatives_and_multiple_portals(self):
         for name, source, price_field, expected in (
                 ('alert_immowelt.eml', 'immowelt', 'warm_eur', 900),
