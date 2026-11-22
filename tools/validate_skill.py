@@ -9,7 +9,8 @@ ROOT = Path(__file__).resolve().parents[1]
 NAME = 'berlin-apartment-search'
 SKILL = ROOT / 'skills' / NAME
 REFERENCES = ('rental-law', 'mietspiegel', 'wbs', 'landeseigene', 'scams',
-              'application-dossier', 'districts', 'after-signing', 'newcomers', 'sources')
+              'application-dossier', 'districts', 'after-signing', 'newcomers', 'sources',
+              'automation', 'browser-recipe')
 MANIFESTS = ('.claude-plugin/plugin.json', '.claude-plugin/marketplace.json',
              '.codex-plugin/plugin.json', '.agents/plugins/marketplace.json')
 
@@ -100,7 +101,7 @@ def main():
         for error in errors:
             print('FAIL: ' + error)
         return 1
-    print('PASS: berlin-apartment-search skill, 10 references, manifests, symlinks and README links')
+    print('PASS: berlin-apartment-search skill, %d references, manifests, symlinks and README links' % len(REFERENCES))
     return 0
 
 

@@ -10,7 +10,7 @@ from urllib.parse import urlencode
 from guard import Blocked, Deferred, Guard, SourceError
 
 
-USER_AGENT = 'berlin-apartment-search/0.2.0 (https://github.com/umutyesildal/berlin-apartment-search)'
+USER_AGENT = 'berlin-apartment-search/0.3.0 (https://github.com/umutyesildal/berlin-apartment-search)'
 
 
 def coordinates(value):

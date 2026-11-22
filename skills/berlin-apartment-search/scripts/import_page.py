@@ -104,6 +104,8 @@ def quantity(value):
 def parse_html(text, base_url=''):
     if re.search(r'<title>[^<]*(?:captcha|access denied|just a moment|robot|zugriff verweigert)', text, re.I):
         return []
+    if re.search(r'verify you are human|ich bin kein roboter|unusual traffic|cf-chl-|captcha-delivery\.com', text, re.I):
+        return []
     root, rows = Document(text).root, []
     structured = []
     for node in root.walk():

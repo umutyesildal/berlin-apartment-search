@@ -43,3 +43,8 @@ class DeutscheWohnenTests(OfflineTest):
         with self.assertRaises(Blocked):
             source.search(guard)
         guard.fetch.assert_called_once()
+        guard = Mock()
+        guard.fetch.side_effect = ['{"token":"fictional-public-token"}', 'not json']
+        with self.assertRaises(Blocked):
+            source.search(guard)
+        self.assertEqual(guard.fetch.call_count, 2)

@@ -48,6 +48,8 @@ class ImportTests(OfflineTest):
         self.assertEqual(parse_html('<title>Access denied</title><h1>Verify you are human</h1>',
                                     'https://www.immowelt.de/expose/fictional-106'), [])
         self.assertEqual(parse_html('', 'https://www.immowelt.de/expose/fictional-106'), [])
+        self.assertEqual(parse_html('<h1>Verify you are human</h1><a href="#challenge">Continue</a>',
+                                    'https://www.immowelt.de/expose/fictional-106'), [])
         self.assertEqual(parse_html('<script type="application/ld+json">broken json</script>'), [])
         self.assertEqual(parse_text('https://www.immowelt.de/privacy'), [])
         email = b'Content-Type: text/plain\nContent-Disposition: attachment\n\nhttps://www.immowelt.de/expose/fictional-106'

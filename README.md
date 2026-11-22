@@ -2,13 +2,15 @@
 
 A local-first apartment-search skill for Berlin. Search public offers from
 InBerlinWohnen and Kleinanzeigen, triage unsuitable ads, and check rental costs
-and scam signals. Python 3.9+, standard library only. P1, version 0.2.0.
+and scam signals. Python 3.9+, standard library only. P2, version 0.3.0.
 
 Features: transparent fit scores; optional cached public-transit/bike estimates;
 a local application tracker; factual contact/cover-letter drafts and dossier
 readiness checks; escaped Markdown/HTML shortlists; municipal, classifieds,
 WG-Gesucht and Wunderflats search. Furnished temporary rentals are tagged, not
 treated as equivalent to a normal long-term flat.
+One-shot new-listing watch, opt-in self-notifications and offline alert/page
+imports are included; blocked portals never trigger a browser bypass.
 
 ## What it does
 
@@ -16,7 +18,7 @@ treated as equivalent to a normal long-term flat.
 - Conservative duplicate suggestions, noise classification and untrusted-text checks.
 - Weighted scam signals and rent/deposit arithmetic, with missing facts left unknown.
 - Sourced Berlin guidance on WBS, municipal housing, moving in and newcomers.
-- Local data only in gitignored `./flat-search/`; no accounts or API keys needed.
+- Local data only in gitignored `./flat-search/`; core search needs no account or API key.
 
 This is **orientation, not legal advice**. It neither finds every available flat
 nor proves that a listing is safe or its rent lawful. Listings may be stale.
@@ -116,16 +118,54 @@ not the user's verdict, notes or status. CSV and event history stay private.
 
 ## Safety and scope
 
-No login, messages, form filling, retries, CAPTCHA solving, proxies or stealth.
+No portal login, advertiser messages, form filling, retries, CAPTCHA solving,
+proxies or stealth. Optional notifications go only to your own private destination.
 Each site gets at most 6 requests/hour and 30/day, with 3–7 seconds of jitter
 between requests. Blocks persist escalating 15-minute / 1-hour / 3-hour / 12-hour
 cooldowns. HTTP 403/429, challenge pages and unrecognized/empty response shapes
 are never silently treated as empty inventory. Do not delete guard state to
 evade limits. Public access can break; use your own browser when blocked.
 
-Scheduling, alert ingestion and automatic sending are not implemented.
 You make all contacts and applications yourself.
 All implementation is original; no research-project code was copied.
+
+## P2 watch and offline imports
+
+```bash
+python3 skills/berlin-apartment-search/scripts/watch.py --source inberlinwohnen --profile flat-search/profile.json --notify ntfy --dry-run
+python3 skills/berlin-apartment-search/scripts/alerts.py flat-search/exports/alert.eml
+python3 skills/berlin-apartment-search/scripts/import_page.py flat-search/saved/page.html --url https://www.immowelt.de/expose/FICTIONAL-ID
+```
+
+Watch runs once, suppresses seen IDs/URLs and conservative cross-portal matches,
+scores only new groups and writes `flat-search/watch/results.json` and escaped
+shortlists. Durable state lives in `flat-search/watch.sqlite`. `first_seen` is a
+local observation (labelled freshness fallback), not a portal publication date.
+`notified_at` records a precommitted attempt; `delivery` records the outcome.
+At-most-once is deliberate: seen items are never automatically retried after
+failures, crashes, disabled notifications or dry runs. A crash between claiming
+and writing a report can lose that run's report; inspect state, never erase it
+to trigger re-notification. Possible duplicates can be different similar units.
+
+Notifications default off; dry-run sends nothing and needs no credentials but
+**does persist seen state**. For real delivery choose `--notify ntfy|telegram`
+and `--confirm-self`. Set `NTFY_TOPIC_URL` or `TELEGRAM_BOT_TOKEN` plus
+`TELEGRAM_CHAT_ID` only in the environment, never repository/profile/scheduler
+files or command-line arguments. Telegram accepts positive private chat IDs,
+not groups/channels; ntfy is restricted to HTTPS ntfy.sh topics. Use a private
+unguessable topic and understand that its URL is a bearer secret. Messages
+contain a count/local-report reminder, not listing text or personal data.
+
+Export saved-search .eml files yourself or save/paste a page from your own
+browser. Imports use no network, browser automation, cookies, remote images,
+inbox access or attachments. Raw exports and generated files stay private.
+Output directories: `flat-search/alerts/` and `flat-search/imported-page/`.
+Unrecognized formats are reported, not called valid empty portal inventory.
+Imported entries are normalized, deduplicated and assessed as untrusted data;
+prices without an explicit basis stay asking rent. Email dates are not posted dates.
+Scheduling examples and the recommended **at least two-hour interval** are in
+[automation](skills/berlin-apartment-search/references/automation.md); blocked
+portal/manual-import guidance is in the [browser recipe](skills/berlin-apartment-search/references/browser-recipe.md).
 
 ## Develop
 
