@@ -11,6 +11,16 @@ from dedupe import group, possible_match
 
 
 class AssessmentTests(OfflineTest):
+    def test_negation_cannot_hide_signals_in_another_clause(self):
+        for separator in ('. ', ', ', '; ', ': ', '! ', '? ', '\n'):
+            with self.subTest(separator=separator):
+                self.assertEqual(scam('Vorkasse' + separator + 'Keine Besichtigung')['score'], 4)
+                self.assertEqual(classify('Tauschwohnung' + separator + 'keine WG'), ['swap'])
+        self.assertEqual(scam('Keine Besichtigung mit Vorkasse')['score'], 4)
+        self.assertEqual(classify('Keine WG mit Tauschwohnung'), ['swap'])
+        self.assertEqual(scam('Keine Vorkasse. Vorkasse ist nicht erforderlich.')['score'], 0)
+        self.assertEqual(classify('Keine Tauschwohnung, keine WG'), [])
+
     def test_coordinates_use_plain_decimal_not_german_thousands(self):
         item = normalize(Listing('a', '1', '', 'A', latitude='52.500', longitude='13.400', cold_eur='1.250'))
         self.assertEqual((item.latitude, item.longitude, item.cold_eur), (52.5, 13.4, 1250))

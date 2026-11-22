@@ -19,9 +19,10 @@ def positive_matches(text, pattern):
     for match in re.finditer(pattern, text, re.I):
         prefix = re.split(r'[,.!?;:\n]|\b(?:aber|but|jedoch)\b',
                           text[max(0, match.start() - 65):match.start()], flags=re.I)[-1]
-        suffix = text[match.end():match.end() + 65]
-        negated_before = re.search(r'\b(?:kein\w*|nicht|ohne|no|not|never|without)\b(?:\W+\w+){0,3}\W*$', prefix, re.I)
-        negated_after = re.match(r'\W*(?:ist|wird|sind|is|are)?\s*(?:nicht|kein\w*|not|never)\b', suffix, re.I)
+        suffix = re.split(r'[,.!?;:\n]|\b(?:aber|but|jedoch)\b',
+                          text[match.end():match.end() + 65], flags=re.I)[0]
+        negated_before = re.search(r'\b(?:kein\w*|nicht|ohne|no|not|never|without)\s*$', prefix, re.I)
+        negated_after = re.match(r'\s+(?:ist|wird|sind|is|are)\s+(?:nicht|kein\w*|not|never)\b', suffix, re.I)
         if not negated_before and not negated_after:
             yield match.group()
 
