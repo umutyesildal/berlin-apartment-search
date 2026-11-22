@@ -12,6 +12,21 @@ FIXTURES = ROOT / 'tests' / 'fixtures'
 
 
 class ImportTests(OfflineTest):
+    def test_canonical_page_identity_keeps_details_with_next_listing_navigation(self):
+        primary = 'https://www.immowelt.de/expose/fictional-main'
+        for metadata, saved_url in [('', primary), ('<link rel="canonical" href="' + primary + '">', ''),
+                                    ('<meta property="og:url" content="' + primary + '">', '')]:
+            for relation in ('', ' rel="next"'):
+                with self.subTest(metadata=metadata, relation=relation):
+                    text = ('<html><head>' + metadata + '</head><body><h1>Main flat</h1>'
+                            '<section><p>Warmmiete: 900 €; 50 m²; 2 Zimmer</p>'
+                            '<a href="https://www.immowelt.de/expose/fictional-next"' + relation + '>Next listing</a>'
+                            '</section></body></html>')
+                    rows = parse_html(text, saved_url)
+                    self.assertEqual(len(rows), 1)
+                    self.assertEqual((rows[0].source_id, rows[0].warm_eur, rows[0].area_m2, rows[0].rooms),
+                                     ('fictional-main', 900, 50, 2))
+
     def test_nested_unrecognized_recommendation_cannot_fill_main_facts(self):
         text = ('<main><h1>Main flat</h1><p>50 m²</p><div class="unknown-widget">'
                 '<p><a href="/expose/fictional-other">Other flat</a></p>'

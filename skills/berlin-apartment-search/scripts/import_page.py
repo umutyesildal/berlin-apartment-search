@@ -133,6 +133,14 @@ def parse_html(text, base_url=''):
     if re.search(r'verify you are human|ich bin kein roboter|unusual traffic|cf-chl-|captcha-delivery\.com|captcha\s+(?:required|erforderlich)', text, re.I):
         return []
     root, rows = Document(text).root, []
+    canonical, og_url = [], []
+    for node in root.walk():
+        if node.tag == 'link' and 'canonical' in node.attrs.get('rel', '').casefold().split():
+            canonical.append(node.attrs.get('href', ''))
+        elif node.tag == 'meta' and node.attrs.get('property', '').casefold() == 'og:url':
+            og_url.append(node.attrs.get('content', ''))
+    base_url = next((urljoin(base_url, candidate) for candidate in canonical + og_url
+                     if identity(urljoin(base_url, candidate))), base_url)
     structured = []
     for node in root.walk():
         if node.tag != 'script' or node.attrs.get('type') != 'application/ld+json':
@@ -192,6 +200,9 @@ def parse_html(text, base_url=''):
             rows.append(from_text(node.text(), link, heading or title))
     for node in root.walk():
         if node.tag == 'a':
+            if (set(node.attrs.get('rel', '').casefold().split()).intersection(('next', 'prev')) or
+                    re.fullmatch(r'(?:next|previous)(?: listing)?', node.text().strip(), re.I)):
+                continue
             link = anchor_link(node, base_url)
             found = identity(link)
             context = node
