@@ -19,7 +19,7 @@ PORTALS = {'immowelt.de': ('immowelt', r'/expose/([^/]+)'),
            'immobilien.de': ('immobiliende', r'/wohnen/(.+)'),
            'wg-gesucht.de': ('wggesucht', r'/[^/]+\.(\d+)\.html'),
            'wunderflats.com': ('wunderflats', r'/en/furnished-apartment/[^/]+/([^/]+)'),
-           'deutsche-wohnen.com': ('deutschewohnen', r'/expose/([^/]+)'),
+           'deutsche-wohnen.com': ('deutschewohnen', r'/mieten/mietangebote/([^/]+)'),
            'housinganywhere.com': ('housinganywhere', r'/room/([^/]+)(?:/.*)?'),
            'ohne-makler.net': ('ohnemakler', r'/immobilie[n]?/(\d+)')}
 

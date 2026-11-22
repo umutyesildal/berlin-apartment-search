@@ -1,9 +1,10 @@
 """Bounded public search-token flow; no account authentication or detail crawl."""
 
 import json
-from urllib.parse import urlencode, urljoin, urlsplit
+import re
+from urllib.parse import quote, urlencode
 from guard import Blocked, SourceError
-from models import Listing, normalize
+from models import Listing, coordinate, normalize
 
 
 NAME = 'deutschewohnen'
@@ -29,27 +30,6 @@ def probe(guard):
         raise Blocked('public list returned non-JSON') from error
 
 
-def values(row):
-    output = {}
-    for key, value in row.items():
-        if isinstance(value, dict):
-            nested = values(value)
-            for name, items in nested.items():
-                output.setdefault(name, []).extend(items)
-        elif isinstance(value, (str, int, float)) and not isinstance(value, bool):
-            output.setdefault(key.casefold().replace('_', ''), []).append(value)
-    return output
-
-
-def pick(data, *names):
-    for name in names:
-        candidates = data.get(name.casefold().replace('_', ''), [])
-        unique = list(dict.fromkeys(candidates))
-        if len(unique) == 1:
-            return unique[0]
-    return None
-
-
 def parse(data):
     if not isinstance(data, dict) or not isinstance(data.get('results'), list):
         raise Blocked('missing Deutsche Wohnen results envelope')
@@ -57,30 +37,21 @@ def parse(data):
     for row in data['results']:
         if not isinstance(row, dict):
             raise SourceError('invalid Deutsche Wohnen result')
-        direct = values({key: value for key, value in row.items() if not isinstance(value, (dict, list))})
-        facts = values(row)
-        identifier = pick(direct, 'objectId', 'objektId', 'id', 'propertyId')
-        if identifier is None or not str(identifier).strip():
+        identifier = row.get('wrk_id')
+        if isinstance(identifier, bool) or not isinstance(identifier, (str, int)) or not str(identifier).strip():
             raise SourceError('Deutsche Wohnen card missing stable identity; schema may have changed')
-        link = pick(direct, 'detailUrl', 'exposeUrl', 'url')
-        url = urljoin(SEARCH_URL, str(link)) if link else ''
-        if url and (urlsplit(url).scheme != 'https' or urlsplit(url).hostname != 'www.deutsche-wohnen.com'):
-            url = ''
-        title = str(pick(direct, 'title', 'titel', 'heading') or 'Deutsche Wohnen offer ' + str(identifier))
+        slug = row.get('slug')
+        url = ('https://www.deutsche-wohnen.com/mieten/mietangebote/' + quote(slug, safe='-')
+               if isinstance(slug, str) and re.fullmatch(r'[\w-]{1,500}', slug) else '')
+        title = str(row.get('titel') or 'Deutsche Wohnen offer ' + str(identifier))
+        latitude, longitude = coordinate(row.get('lat')), coordinate(row.get('lng'))
+        if not latitude or not longitude or not (-90 <= latitude <= 90 and -180 <= longitude <= 180):
+            latitude = longitude = None
         listing = Listing(NAME, str(identifier), url, title,
-                          district=pick(facts, 'district', 'stadtteil'), postcode=pick(facts, 'postcode', 'postalCode', 'plz'),
-                          street=pick(facts, 'street', 'streetName', 'strasse'),
-                          rooms=pick(facts, 'rooms', 'numberOfRooms', 'zimmer'),
-                          area_m2=pick(facts, 'livingArea', 'wohnflaeche', 'area'),
-                          cold_eur=pick(facts, 'netColdRent', 'coldRent', 'kaltmiete'),
-                          warm_eur=pick(facts, 'totalRent', 'warmRent', 'gesamtmiete', 'warmmiete'),
-                          costs_eur=pick(facts, 'additionalCosts', 'nebenkosten'),
-                          asking_eur=pick(facts, 'price', 'preis'),
-                          deposit_eur=pick(facts, 'deposit', 'kaution'),
-                          available_from=pick(facts, 'availableFrom', 'verfuegbarAb'),
-                          posted_at=pick(facts, 'publishedAt', 'postedAt'),
-                          latitude=pick(facts, 'latitude', 'lat'), longitude=pick(facts, 'longitude', 'lon'),
-                          text=title + '\n' + str(pick(direct, 'description', 'beschreibung') or ''))
+                          postcode=row.get('plz', ''), street=row.get('strasse', ''),
+                          rooms=row.get('anzahl_zimmer'), area_m2=row.get('groesse'), asking_eur=row.get('preis'),
+                          latitude=latitude, longitude=longitude,
+                          text=title + '\n' + str(row.get('strasse') or '') + '\n' + str(row.get('ort') or ''))
         output.append(normalize(listing))
     return output
 

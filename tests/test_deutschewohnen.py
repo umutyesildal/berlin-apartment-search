@@ -15,7 +15,7 @@ class DeutscheWohnenTests(OfflineTest):
         self.assertEqual(guard.fetch.call_args.kwargs['headers']['X-VON-Search-Token'], 'fictional-public-search-token')
         self.assertNotIn('token', source.LIST_URL)
         row = rows[0]
-        self.assertEqual((row.cold_eur, row.warm_eur, row.area_m2, row.rooms), (700, 900, 50, 2))
+        self.assertEqual((row.cold_eur, row.warm_eur, row.asking_eur, row.area_m2, row.rooms), (None, None, 900, 50, 2))
         self.assertEqual((row.latitude, row.longitude), (52.5, 13.4))
         self.assertEqual(row.postcode, '10115')
 
@@ -26,9 +26,10 @@ class DeutscheWohnenTests(OfflineTest):
         for result in ([None], [{}]):
             with self.assertRaises(SourceError):
                 source.parse({'results': result})
-        row = source.parse({'results': [{'id': 'fiction-2', 'title': 'Unknown prices', 'url': 'https://attacker.test/'}]})[0]
+        row = source.parse({'results': [{'wrk_id': 'fiction-2', 'titel': 'Unknown prices', 'slug': '../unsafe', 'lat': 0, 'lng': 0}]})[0]
         self.assertIsNone(row.warm_eur)
         self.assertEqual(row.url, '')
+        self.assertIsNone(row.latitude)
 
     def test_missing_token_block_and_bad_json_do_not_retry(self):
         for response in ('{}', 'null', '{"token":0}', 'not json'):
