@@ -6,8 +6,7 @@ from pathlib import Path
 
 def private_directory(directory):
     path = Path(os.path.abspath(directory))
-    chain = list(reversed([path] + list(path.parents)))
-    root = next((item for item in chain if item.name == 'flat-search'), path)
+    root = Path.cwd().resolve() / 'flat-search'
 
     def create_parent(parent):
         if not parent.exists():
@@ -15,8 +14,13 @@ def private_directory(directory):
             parent.mkdir(mode=0o700, exist_ok=True)
             parent.chmod(0o700)
 
-    create_parent(root.parent)
-    for item in chain[chain.index(root):]:
+    if path != root and root not in path.parents:
+        create_parent(path)
+        return Path(directory)
+    chain = [path]
+    while chain[-1] != root:
+        chain.append(chain[-1].parent)
+    for item in reversed(chain):
         if item.is_symlink():
             raise OSError('private output directories must not be symbolic links')
         item.mkdir(mode=0o700, exist_ok=True)

@@ -18,8 +18,28 @@ from private_paths import private_directory
 
 
 class PrivatePathTests(OfflineTest):
-    def test_helper_preserves_outside_parents_and_propagates_errors(self):
+    def test_outer_flat_search_folder_and_checkout_are_never_chmodded(self):
+        if os.name == 'nt':
+            self.skipTest('POSIX directory modes')
         with tempfile.TemporaryDirectory() as directory:
+            outer = Path(directory) / 'flat-search'
+            checkout = outer / 'checkout'
+            checkout.mkdir(parents=True)
+            outer.chmod(0o755)
+            checkout.chmod(0o755)
+            with working_directory(checkout):
+                Path('flat-search').mkdir()
+                Path('flat-search').chmod(0o755)
+                private_directory('flat-search/nested/output')
+                private_directory('.')
+                private_directory(outer)
+                self.assertEqual(stat.S_IMODE(outer.stat().st_mode), 0o755)
+                self.assertEqual(stat.S_IMODE(checkout.stat().st_mode), 0o755)
+                for path in (Path('flat-search'), Path('flat-search/nested'), Path('flat-search/nested/output')):
+                    self.assertEqual(stat.S_IMODE(path.stat().st_mode), 0o700)
+
+    def test_helper_preserves_outside_parents_and_propagates_errors(self):
+        with tempfile.TemporaryDirectory() as directory, working_directory(directory):
             parent = Path(directory)
             mode = stat.S_IMODE(parent.stat().st_mode)
             private_directory(parent / 'flat-search/a/b')
