@@ -7,10 +7,10 @@ from classify import positive_matches
 
 RULES = {
     'advance_payment': (4, r'\b(?:vorkasse|vorauszahlung|advance payment|pay before viewing)\b'),
-    'posted_keys': (4, r'\b(?:schlüssel.{0,25}(?:post|versand)|keys.{0,25}(?:post|mail|courier))\b'),
-    'abroad': (2, r'\b(?:vermieter.{0,25}ausland|landlord.{0,25}abroad|ich (?:bin|lebe).{0,15}ausland)\b'),
+    'posted_keys': (4, r'\b(?:schlüssel[^.!?\n]{0,25}(?:post|versand)|keys[^.!?\n]{0,25}(?:post|mail|courier))\b'),
+    'abroad': (2, r'\b(?:vermieter[^.!?\n]{0,25}ausland|landlord[^.!?\n]{0,25}abroad|ich (?:bin|lebe)[^.!?\n]{0,15}ausland)\b'),
     'irreversible_payment': (5, r'\b(?:western union|bitcoin|crypto(?:currency)?|kryptowährung)\b'),
-    'whatsapp_only': (2, r'\b(?:(?:nur|only).{0,12}whatsapp|whatsapp.{0,12}(?:only|ausschließlich))\b'),
+    'whatsapp_only': (2, r'\b(?:(?:nur|only)[^.!?\n]{0,12}whatsapp|whatsapp[^.!?\n]{0,12}(?:only|ausschließlich))\b'),
 }
 
 

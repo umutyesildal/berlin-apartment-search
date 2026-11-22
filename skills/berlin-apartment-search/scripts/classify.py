@@ -16,10 +16,10 @@ PATTERNS = {
 
 
 def positive_matches(text, pattern, noise=False):
-    normalized = ' '.join(text.split())
-    prefixes = r'kein(?:e|en)?(?:\s+Zahlung\s+(?:per|als))?|ohne|no|without'
+    normalized = re.sub(r'[^\S\n]+', ' ', text.replace('\r\n', '\n').replace('\r', '\n'))
+    prefixes = r'kein(?:e|en)?(?:\s+Zahlung\s+(?:per|als))?|ohne|nicht(?:\s+(?:als|per))?|no|without'
     if noise:
-        prefixes += r'|kein(?:e|en)?\s+Wohnung\s+per|nicht|not'
+        prefixes += r'|kein(?:e|en)?\s+Wohnung\s+per|not'
     for match in re.finditer(pattern, normalized, re.I):
         before, after = normalized[:match.start()], normalized[match.end():]
         negated_before = re.search(r'\b(?:' + prefixes + r')\s+$', before, re.I)
