@@ -14,9 +14,15 @@ FIXTURES = ROOT / 'tests' / 'fixtures'
 class ImportTests(OfflineTest):
     def test_html_rent_fields_keep_block_boundaries(self):
         url = 'https://www.immowelt.de/expose/fictional-fields'
-        for name in ('saved_rent_dl.html', 'saved_rent_table.html'):
+        for name in ('saved_rent_dl.html', 'saved_rent_table.html', 'saved_rent_table_amount_first.html'):
             with self.subTest(fixture=name):
                 row = parse_html(fixture(name), url)[0]
+                self.assertEqual((row.cold_eur, row.warm_eur), (700, 900))
+        for cells in ('<td><p>700 €</p></td><th><div>Kaltmiete</div></th>',
+                      '<th><p>Kaltmiete</p></th><td><div>700 €</div></td>'):
+            html = '<main><h1>Flat</h1><table><tr>' + cells + '</tr>\n<tr><td>900 €</td><th>Warmmiete</th></tr></table></main>'
+            with self.subTest(cells=cells):
+                row = parse_html(html, url)[0]
                 self.assertEqual((row.cold_eur, row.warm_eur), (700, 900))
         for fields in ('<div>Kaltmiete:</div><div>700 €</div><div>Warmmiete:</div><div>900 €</div>',
                        '<p>Kaltmiete:<br>700 €</p><p>Warmmiete:<br>900 €</p>',

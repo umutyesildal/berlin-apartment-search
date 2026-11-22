@@ -129,7 +129,9 @@ def visible_text(node, excluded):
     text = ' '.join(part for part in parts if part)
     text = re.sub(r'[ \t\r]*\n[ \t\r]*', '\n', text)
     text = re.sub(r'\n+', '\n', text).strip()
-    if node.tag in ('dt', 'dd', 'tr', 'td', 'th', 'li', 'div', 'p', 'section', 'article',
+    if node.tag == 'tr':
+        return '\n' + re.sub(r'\s+', ' ', text).strip() + '\n'
+    if node.tag in ('dt', 'dd', 'li', 'div', 'p', 'section', 'article',
                     'main', 'dl', 'table', 'ul', 'ol', 'h1', 'h2', 'h3'):
         if re.fullmatch(r'Kaltmiete|Nettokaltmiete|Warmmiete|Gesamtmiete|Nebenkosten|Betriebskosten|Kaution', text, re.I):
             text += ':'
