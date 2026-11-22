@@ -13,6 +13,7 @@ from sources.html_tools import Document
 
 
 MAX_BYTES = 5 * 1024 * 1024
+NO_LISTING = 'No listing found. Save the fully loaded page with listing details and try again.'
 PORTALS = {'immowelt.de': ('immowelt', r'/expose/([^/]+)'),
            'immobilienscout24.de': ('immoscout', r'/expose/([^/]+)'),
            'kleinanzeigen.de': ('kleinanzeigen', r'/s-anzeige/[^/]+/(\d+)(?:-[^/]*)?'),
@@ -120,7 +121,7 @@ def anchor_link(node, base_url):
 
 
 def visible_text(node, excluded):
-    if id(node) in excluded or node.tag in ('script', 'style', 'svg'):
+    if id(node) in excluded or node.tag in ('script', 'style', 'svg', 'head', 'title'):
         return ''
     return ' '.join(part for part in (child if isinstance(child, str) else visible_text(child, excluded)
                                      for child in node.children) if part.strip()).strip()
@@ -221,7 +222,8 @@ def parse_html(text, base_url=''):
         context = visible_text(main, excluded)
         if context and not re.search(r'captcha|access denied|verify you are human|kein roboter', heading, re.I):
             rows.insert(structured_count, from_text(context, base_url, heading))
-    return merge(rows)
+    return [row for row in merge(rows) if any(getattr(row, field) not in ('', None) for field in
+            ('cold_eur', 'warm_eur', 'asking_eur', 'costs_eur', 'deposit_eur', 'area_m2', 'rooms', 'street', 'postcode'))]
 
 
 def parse_text(text, base_url=''):
@@ -244,7 +246,8 @@ def build_report(rows, origin):
     return enrich({'generated_at': datetime.now(timezone.utc).isoformat(),
                    'sources': {origin: {'status': 'ok' if rows else 'unsupported', 'returned': len(rows),
                                         'kept': len(rows), 'blocked': None,
-                                        'reason': 'Offline import; not portal inventory or sender verification.'}},
+                                        'reason': NO_LISTING if not rows and origin == 'saved_page' else
+                                        'Offline import; not portal inventory or sender verification.'}},
                    'listing_count': len(rows), 'groups': group(rows)})
 
 
@@ -260,7 +263,8 @@ def main(argv=None):
         text = args.page.read_text(encoding='utf-8', errors='replace')
         rows = parse_text(text, args.url) if args.text else parse_html(text, args.url)
         write_report(build_report(rows, 'saved_page'), Path('flat-search/imported-page'))
-        print(json.dumps({'listing_count': len(rows), 'status': 'imported' if rows else 'unrecognized',
+        print(json.dumps({'listing_count': len(rows), 'status': 'imported' if rows else 'no_listing_found',
+                          'hint': None if rows else NO_LISTING,
                           'output': 'flat-search/imported-page/results.json'}))
         return 0 if rows else 1
     except (OSError, ValueError, TypeError, RecursionError):

@@ -12,6 +12,21 @@ FIXTURES = ROOT / 'tests' / 'fixtures'
 
 
 class ImportTests(OfflineTest):
+    def test_html_shell_without_listing_facts_is_not_imported_and_cli_explains(self):
+        url = 'https://www.immowelt.de/expose/fictional-shell'
+        for html in ('<title>Fictional apartment</title><script>loadListing()</script>',
+                     '<h1>Fictional apartment</h1><div id="app"></div>',
+                     '<script type="application/ld+json">' + json.dumps({'@type': 'Apartment', 'url': url, 'name': 'Flat'}) + '</script>'):
+            with self.subTest(html=html):
+                self.assertEqual(parse_html(html, url), [])
+        for fact in ('Warmmiete: 900 €', '50 m²', '2 Zimmer', '10115 Berlin'):
+            self.assertEqual(len(parse_html('<h1>Flat</h1><p>' + fact + '</p>', url)), 1)
+        with tempfile.TemporaryDirectory() as directory, working_directory(directory), patch('sys.stdout', io.StringIO()) as output:
+            Path('shell.html').write_text('<title>Flat</title><script>load()</script>', encoding='utf-8')
+            self.assertEqual(page_main(['shell.html', '--url', url]), 1)
+            self.assertIn('no_listing_found', output.getvalue())
+            self.assertIn('fully loaded page', output.getvalue())
+
     def test_unrecognized_recommendation_wrapper_does_not_supply_main_facts(self):
         url = 'https://www.immowelt.de/expose/fictional-main'
         for tag in ('div', 'section', 'p'):
