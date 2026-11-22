@@ -1,8 +1,10 @@
 """Synthetic fixtures and a network-denying base case for all tests."""
 
 import socket
+import os
 import sys
 import unittest
+from contextlib import contextmanager
 from pathlib import Path
 from unittest.mock import patch
 
@@ -15,6 +17,16 @@ sys.path.insert(0, str(ROOT / 'tools'))
 
 def fixture(name):
     return (ROOT / 'tests' / 'fixtures' / name).read_text(encoding='utf-8')
+
+
+@contextmanager
+def working_directory(directory):
+    previous = Path.cwd()
+    os.chdir(directory)
+    try:
+        yield
+    finally:
+        os.chdir(previous)
 
 
 class OfflineTest(unittest.TestCase):

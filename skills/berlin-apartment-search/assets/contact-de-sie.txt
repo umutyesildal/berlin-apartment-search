@@ -1,0 +1,11 @@
+Guten Tag,
+
+ich interessiere mich für die angebotene Wohnung und würde mich über einen Besichtigungstermin freuen.
+
+Name: {{full_name}}
+Haushaltsgröße: {{household_size}}
+Gewünschter Einzug: {{move_from}}
+Über mich/uns: {{about_me}}
+
+Mit freundlichen Grüßen
+{{full_name}}

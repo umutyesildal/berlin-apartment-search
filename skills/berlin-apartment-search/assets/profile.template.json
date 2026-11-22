@@ -1,0 +1,21 @@
+{
+  "full_name": null,
+  "household_size": null,
+  "move_from": null,
+  "about_me": null,
+  "employment": null,
+  "income_statement": null,
+  "documents_statement": null,
+  "max_warm_eur": null,
+  "min_rooms": null,
+  "min_area_m2": null,
+  "districts": [],
+  "value_eur_m2": null,
+  "max_commute_minutes": null,
+  "documents": {
+    "schufa": [],
+    "payslips": [],
+    "identity": [],
+    "wbs": []
+  }
+}

@@ -11,6 +11,37 @@ from search import collect, main, markdown, write_report
 
 
 class SearchTests(OfflineTest):
+    def test_cli_filters_do_not_replace_profile_scoring_preferences(self):
+        row = Listing('fiction', '1', 'https://example.test/1', 'Fictional flat', warm_eur=1400, rooms=1)
+        with patch('sources.inberlinwohnen.search', return_value=[row]):
+            report = collect(['inberlinwohnen'], Mock(), max_warm=2000, min_rooms=1,
+                             profile={'max_warm_eur': 1000, 'min_rooms': 3})
+        self.assertEqual(report['listing_count'], 1)
+        factors = report['groups'][0]['members'][0]['fit']['factors']
+        self.assertAlmostEqual(factors['budget']['points'], 20)
+        self.assertAlmostEqual(factors['size_rooms']['points'], 41.67)
+
+    def test_fit_and_optional_commute_in_search(self):
+        row = Listing('fiction', '1', 'https://example.test/1', 'Fictional flat', warm_eur=900,
+                      latitude=52.5, longitude=13.4)
+        client = Mock()
+        client.route.return_value = {'status': 'ok', 'minutes': 30}
+        with patch('sources.inberlinwohnen.search', return_value=[row]):
+            report = collect(['inberlinwohnen'], Mock(), max_warm=1000,
+                             profile={'max_commute_minutes': 40, 'max_warm_eur': 1000},
+                             commute_client=client, commute_to=[52.6, 13.5])
+        member = report['groups'][0]['members'][0]
+        self.assertEqual(member['fit']['factors']['budget']['points'], 100)
+        self.assertEqual(member['fit']['factors']['commute']['points'], 100)
+        self.assertIn('scam', member)
+        self.assertIn('rent', member)
+        client.route.assert_called_once_with([52.5, 13.4], [52.6, 13.5], 'transit', max_minutes=40)
+        row.latitude = None
+        with patch('sources.inberlinwohnen.search', return_value=[row]):
+            report = collect(['inberlinwohnen'], Mock(), commute_client=client, commute_to=[52.6, 13.5])
+        self.assertEqual(report['groups'][0]['members'][0]['commute']['status'], 'unknown')
+        self.assertEqual(client.route.call_count, 1)
+
     def test_mid_body_failure_preserves_other_sources_and_writes_results(self):
         for error in (IncompleteRead(b'partial', 100), RemoteDisconnected('disconnected')):
             with self.subTest(error=type(error).__name__), tempfile.TemporaryDirectory() as directory:

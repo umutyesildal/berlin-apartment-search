@@ -2,7 +2,8 @@
 
 Data-as-of: 2026-11-22. **Orientation, not legal advice.**
 
-P0 does not draft applications, upload documents or contact advertisers.
+P1 can draft local contact messages/letters from volunteered profile facts and
+check document-date metadata. It never uploads documents or contacts advertisers.
 Privately gather only what is requested and appropriate at the relevant stage:
 contact details, household size, income/employment evidence, WBS if applicable,
 and a creditworthiness confirmation if justified. Redact unrelated transactions,

@@ -67,7 +67,8 @@ class Guard:
                 (now - 3600, site)).fetchone()
             if daily >= self.DAILY or hourly >= self.HOURLY:
                 raise Deferred('persisted request budget exhausted')
-            when = max(now, last + self.jitter()) if last is not None else now
+            gap = max(1.0, self.jitter()) if site == 'nominatim' else self.jitter()
+            when = max(now, last + gap) if last is not None else now
             db.execute('INSERT INTO requests VALUES (?,?)', (site, when))
         if when > now:
             self.sleep(when - now)
@@ -89,11 +90,13 @@ class Guard:
         parsed = urlsplit(url)
         hosts = {'inberlinwohnen': 'www.inberlinwohnen.de',
                  'kleinanzeigen': 'www.kleinanzeigen.de',
-                 'immoscout': 'api.mobile.immobilienscout24.de'}
+                 'immoscout': 'api.mobile.immobilienscout24.de',
+                 'wggesucht': 'www.wg-gesucht.de', 'wunderflats': 'wunderflats.com',
+                 'nominatim': 'nominatim.openstreetmap.org', 'transitous': 'api.transitous.org'}
         if parsed.scheme != 'https' or parsed.hostname != hosts.get(site) or parsed.port not in (None, 443):
             raise SourceError('endpoint not permitted')
         self.reserve(site)
-        request_headers = {'User-Agent': 'berlin-apartment-search/0.1.0',
+        request_headers = {'User-Agent': 'berlin-apartment-search/0.2.0',
                            'Accept': 'text/html,application/json', 'Accept-Encoding': 'identity'}
         request_headers.update(headers or {})
         request = Request(url, data=body, headers=request_headers)

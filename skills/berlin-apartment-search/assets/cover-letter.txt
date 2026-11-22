@@ -1,0 +1,15 @@
+Guten Tag,
+
+hiermit bekunde ich mein Interesse an der angebotenen Wohnung.
+
+Name: {{full_name}}
+Haushalt: {{household_size}}
+Gewünschter Einzug: {{move_from}}
+Persönliche Vorstellung: {{about_me}}
+Berufliche Situation: {{employment}}
+Freiwillige Einkommensangabe: {{income_statement}}
+Verfügbare Unterlagen: {{documents_statement}}
+
+Über eine Rückmeldung würde ich mich freuen.
+Mit freundlichen Grüßen
+{{full_name}}

@@ -13,7 +13,7 @@ and deposit arrangements. “Temporary” or “furnished” does not by itself 
 the legal rules. Never invent income or visa status to improve an application.
 Ask which alternative evidence a landlord accepts if you lack local paperwork.
 For residency issues use the Berlin immigration office or qualified advice, not
-an ad's promise. Application drafting and automatic messaging are outside P0.
+an ad's promise. P1 offers factual local drafts; automatic messaging is never enabled.
 
 Sources (official city guidance/current BMG, consulted 2026):
 - https://www.berlin.de/willkommenszentrum/en/
