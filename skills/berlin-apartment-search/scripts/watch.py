@@ -8,12 +8,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 from private_paths import private_directory
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+from uuid import uuid4
 from classify import PATTERNS
 from dedupe import possible_match
 from fit_score import weights_from
 from guard import Guard
 from models import Listing
 from notify import destination, send
+from report import render as render_shortlist
 from search import SOURCES, collect, enrich, positive, write_report
 
 
@@ -89,10 +91,19 @@ def run(selected, guard, directory='flat-search', profile=None, weights=None, ma
     report, claimed = claim_new(report, path, bool(provider), dry_run)
     enrich(report, profile, weights)
     report['notification'] = {'status': 'disabled' if provider is None else 'no_new'}
-    write_report(report, Path(directory) / 'watch')
+    if claimed:
+        stamp = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ') + '-' + uuid4().hex[:12]
+        stem = Path(directory) / 'watch/runs' / stamp
+        private_directory(stem.parent)
+        report['run_files'] = {'markdown': str(stem.with_suffix('.md')), 'html': str(stem.with_suffix('.html'))}
+        markdown, page = render_shortlist(report)
+        for extension, content in (('.md', markdown), ('.html', page)):
+            with stem.with_suffix(extension).open('x', encoding='utf-8') as stream:
+                stream.write(content)
+        write_report(report, Path(directory) / 'watch')
     if provider and claimed:
-        receipt = send(guard, provider, 'New apartment listings: %d. Review your local flat-search/watch/shortlist.html. No safety guarantee.'
-                       % len(claimed), dry_run, confirm_self)
+        receipt = send(guard, provider, 'New apartment listings: %d. Review your local %s. No safety guarantee.'
+                       % (len(claimed), report['run_files']['html']), dry_run, confirm_self)
         report['notification'] = receipt
         with sqlite3.connect(str(path)) as db:
             db.executemany('UPDATE seen SET delivery=? WHERE id=?', [(receipt['status'], identifier) for identifier in claimed])
@@ -123,7 +134,7 @@ def main(argv=None):
                      dry_run=args.dry_run, confirm_self=args.confirm_self)
         print(json.dumps({'sources': report['sources'], 'new_count': report['new_count'],
                           'listing_count': report['listing_count'], 'seen_suppressed': report['seen_suppressed'],
-                          'notification': report['notification'], 'output': 'flat-search/watch/shortlist.{md,html}'}, ensure_ascii=False))
+                          'notification': report['notification'], 'output': report.get('run_files')}, ensure_ascii=False))
         return 0 if all(source['status'] == 'ok' for source in report['sources'].values()) and report['notification']['status'] != 'failed' else 1
     except (OSError, ValueError, TypeError, KeyError, sqlite3.Error):
         parser.error('Watch state/configuration/output error; no automatic retry. Private values omitted.')

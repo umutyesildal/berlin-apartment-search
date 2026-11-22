@@ -19,6 +19,11 @@ backoff regardless of schedule. Extra searches and notifications share their
 respective provider budgets. Do not accelerate on a failed/empty run. Watch
 does not request commute estimates or geocode in the background.
 
+Each new-listing run writes a timestamped `watch/runs/<timestamp>.md` and `.html`
+shortlist. Notifications name their own run's HTML file. The latest shortlist
+and results under `watch/` update only for new listings; a zero-new run leaves
+them intact and reports its current source statuses on stdout.
+
 Seen claims are SQLite-serialized across processes and precede report writing
 and delivery. `first_seen` is local observation time; `notified_at` is an attempt
 claim, not a service delivery guarantee. `delivery` records disabled/dry_run/

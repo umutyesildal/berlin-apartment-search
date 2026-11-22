@@ -59,6 +59,26 @@ class NotifyTests(OfflineTest):
 
 
 class WatchTests(OfflineTest):
+    def test_empty_run_preserves_latest_and_notification_targets_own_run(self):
+        with tempfile.TemporaryDirectory() as directory:
+            rows = [Listing('fiction', '1', '', 'First fictional flat')]
+            with patch('sources.inberlinwohnen.search', return_value=rows), patch('watch.send', return_value={'status': 'dry_run'}) as notify:
+                first = run(['inberlinwohnen'], Mock(), directory, provider='ntfy', dry_run=True)
+                latest = Path(directory) / 'watch/shortlist.html'
+                original = latest.read_text(encoding='utf-8')
+                second = run(['inberlinwohnen'], Mock(), directory, provider='ntfy', dry_run=True)
+                self.assertEqual(second['new_count'], 0)
+                self.assertEqual(latest.read_text(encoding='utf-8'), original)
+                first_html = Path(first['run_files']['html'])
+                self.assertTrue(first_html.is_file())
+                self.assertTrue(first_html.with_suffix('.md').is_file())
+                self.assertIn(str(first_html), notify.call_args.args[2])
+                first_content = first_html.read_text(encoding='utf-8')
+                rows[:] = [Listing('fiction', '2', '', 'Second fictional flat')]
+                third = run(['inberlinwohnen'], Mock(), directory, provider='ntfy', dry_run=True)
+                self.assertNotEqual(first['run_files'], third['run_files'])
+                self.assertEqual(first_html.read_text(encoding='utf-8'), first_content)
+
     def raw_report(self, rows):
         from dedupe import group
         return {'generated_at': '2026-01-01T00:00:00+00:00', 'sources': {'fiction': {'status': 'ok'}},
