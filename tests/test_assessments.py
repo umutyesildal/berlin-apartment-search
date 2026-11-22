@@ -11,6 +11,13 @@ from dedupe import group, possible_match
 
 
 class AssessmentTests(OfflineTest):
+    def test_coordinates_use_plain_decimal_not_german_thousands(self):
+        item = normalize(Listing('a', '1', '', 'A', latitude='52.500', longitude='13.400', cold_eur='1.250'))
+        self.assertEqual((item.latitude, item.longitude, item.cold_eur), (52.5, 13.4, 1250))
+        for value in (None, '', 'unknown', '52,500', float('inf'), True):
+            with self.subTest(value=value):
+                self.assertIsNone(normalize(Listing('a', '1', '', 'A', latitude=value)).latitude)
+
     def test_normalization_unknown_and_numbers(self):
         self.assertEqual(number('1.250,50 €'), 1250.5)
         self.assertEqual(number('25,95 m²'), 25.95)

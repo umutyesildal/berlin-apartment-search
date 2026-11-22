@@ -30,6 +30,16 @@ def number(value):
         return None
 
 
+def coordinate(value):
+    if value is None or isinstance(value, bool):
+        return None
+    try:
+        result = float(value)
+        return result if math.isfinite(result) else None
+    except (TypeError, ValueError):
+        return None
+
+
 def safe_url(value):
     value = str(value or '')
     parsed = urlsplit(value)
@@ -77,7 +87,8 @@ def normalize(item):
     item.url = safe_url(item.url)
     for key in ('rooms', 'area_m2', 'cold_eur', 'warm_eur', 'asking_eur',
                 'costs_eur', 'deposit_eur', 'latitude', 'longitude'):
-        value = number(getattr(item, key))
+        parser = coordinate if key in ('latitude', 'longitude') else number
+        value = parser(getattr(item, key))
         if key not in ('latitude', 'longitude') and value is not None and value < 0:
             value = None
         if key in ('rooms', 'area_m2') and value == 0:
