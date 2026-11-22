@@ -58,7 +58,7 @@ class Commute:
         except (Blocked, Deferred, SourceError, OSError, ValueError, KeyError, TypeError, IndexError) as error:
             return {'status': 'unknown', 'reason': str(error)}
 
-    def route(self, origin, destination, mode='transit', at=None):
+    def route(self, origin, destination, mode='transit', at=None, max_minutes=None):
         try:
             start, end = coordinates(origin), coordinates(destination)
             if mode not in ('transit', 'bike'):
@@ -73,6 +73,10 @@ class Commute:
                       'numItineraries': 1}
             if mode == 'bike':
                 params['transitModes'] = ''
+                maximum = 90 if max_minutes is None else float(max_minutes)
+                if isinstance(max_minutes, bool) or not math.isfinite(maximum) or maximum <= 0:
+                    raise ValueError('maximum commute duration must be positive and finite')
+                params['maxDirectTime'] = max(1, int(min(maximum, 90) * 60))
             data = self.cached('transitous', 'https://api.transitous.org/api/v1/plan?' + urlencode(params), 86400)
             if mode == 'bike':
                 itineraries = [item for item in data.get('direct', [])
@@ -96,6 +100,7 @@ def main(argv=None):
     parser.add_argument('--from-coordinates', nargs=2, type=float)
     parser.add_argument('--to-coordinates', nargs=2, type=float, required=True)
     parser.add_argument('--mode', choices=('transit', 'bike'), default='transit')
+    parser.add_argument('--max-minutes', type=float, help='Bike route search limit; default and hard cap: 90 minutes')
     parser.add_argument('--offline', action='store_true')
     args = parser.parse_args(argv)
     if bool(args.origin) == bool(args.from_coordinates):
@@ -103,7 +108,7 @@ def main(argv=None):
     client = Commute(Guard(), offline=args.offline)
     geocoded = client.geocode(args.origin) if args.origin else None
     origin = args.from_coordinates or ([geocoded['latitude'], geocoded['longitude']] if geocoded['status'] == 'ok' else None)
-    result = client.route(origin, args.to_coordinates, args.mode) if origin else geocoded
+    result = client.route(origin, args.to_coordinates, args.mode, max_minutes=args.max_minutes) if origin else geocoded
     print(json.dumps({'geocode': geocoded, 'route': result}, ensure_ascii=False))
     return 0 if result['status'] == 'ok' else 1
 

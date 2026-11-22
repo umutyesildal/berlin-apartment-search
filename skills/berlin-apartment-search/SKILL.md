@@ -95,6 +95,9 @@ Ask permission before disclosing approximate origin/destination coordinates or
 a public place query. `scripts/commute.py --origin "Alexanderplatz Berlin"
 --to-coordinates 52.5251 13.3694` geocodes a public place with Nominatim and
 routes with Transitous. Use `--mode bike` for bicycle, `--offline` for cache only.
+Bike requests use `maxDirectTime` in seconds from profile `max_commute_minutes`,
+or CLI `--max-minutes`; the default and hard cap are 90 minutes. Only direct bike
+results are used, never transit itineraries labelled as cycling.
 Search accepts `--commute-to LAT LON` and `--commute-mode transit|bike`, using
 only coordinates already present in listings; it does not geocode advertisers'
 addresses. Without that explicit option no route requests occur.

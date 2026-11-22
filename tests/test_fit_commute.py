@@ -45,6 +45,28 @@ class FitTests(OfflineTest):
 
 
 class CommuteTests(OfflineTest):
+    def test_bike_direct_duration_uses_limit_seconds_and_caps_at_90_minutes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            guard = Mock()
+
+            def route_response(site, url, **kwargs):
+                query = parse_qs(urlsplit(url).query, keep_blank_values=True)
+                maximum = int(query.get('maxDirectTime', ['1800'])[0])
+                return json.dumps({'direct': [{'duration': 2700, 'legs': [{'mode': 'BIKE'}]}]
+                                   if maximum >= 2700 else [], 'itineraries': []})
+
+            guard.fetch.side_effect = route_response
+            client = Commute(guard, directory)
+            result = client.route([52, 13], [52.1, 13.1], mode='bike')
+            self.assertEqual(result['status'], 'ok')
+            self.assertEqual(result['minutes'], 45)
+            for maximum, seconds in ((60, 3600), (120, 5400)):
+                client.route([52 + maximum / 10000, 13], [52.1, 13.1], mode='bike', max_minutes=maximum)
+                query = parse_qs(urlsplit(guard.fetch.call_args.args[1]).query)
+                self.assertEqual(query['maxDirectTime'], [str(seconds)])
+            for invalid in (0, -1, True, float('nan')):
+                self.assertEqual(client.route([52, 13], [52.1, 13.1], mode='bike', max_minutes=invalid)['status'], 'unknown')
+
     def test_bike_uses_direct_bike_routes_not_transit_itineraries(self):
         with tempfile.TemporaryDirectory() as directory:
             guard = Mock()

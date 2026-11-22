@@ -35,7 +35,7 @@ class SearchTests(OfflineTest):
         self.assertEqual(member['fit']['factors']['commute']['points'], 100)
         self.assertIn('scam', member)
         self.assertIn('rent', member)
-        client.route.assert_called_once_with([52.5, 13.4], [52.6, 13.5], 'transit')
+        client.route.assert_called_once_with([52.5, 13.4], [52.6, 13.5], 'transit', max_minutes=40)
         row.latitude = None
         with patch('sources.inberlinwohnen.search', return_value=[row]):
             report = collect(['inberlinwohnen'], Mock(), commute_client=client, commute_to=[52.6, 13.5])

@@ -68,6 +68,7 @@ def collect(selected, guard, max_warm=None, min_rooms=None, exclude=(), profile=
 
 
 def enrich(report, profile=None, weights=None, commute_client=None, commute_to=None, commute_mode='transit'):
+    profile = profile or {}
     for cluster in report['groups']:
         for member in cluster['members']:
             text = member['title'] + '\n' + member['text']
@@ -77,7 +78,8 @@ def enrich(report, profile=None, weights=None, commute_client=None, commute_to=N
                                         costs_eur=member['costs_eur'], deposit_eur=member['deposit_eur'])
             member['commute'] = {'status': 'unknown', 'reason': 'Not requested or listing coordinates unavailable.'}
             if commute_client and commute_to and member['latitude'] is not None and member['longitude'] is not None:
-                member['commute'] = commute_client.route([member['latitude'], member['longitude']], commute_to, commute_mode)
+                member['commute'] = commute_client.route([member['latitude'], member['longitude']], commute_to, commute_mode,
+                                                        max_minutes=profile.get('max_commute_minutes'))
             score_input = member
             if not member['posted_at'] and member.get('first_seen'):
                 score_input = dict(member, posted_at=member['first_seen'])

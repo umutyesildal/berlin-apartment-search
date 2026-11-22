@@ -99,6 +99,8 @@ are guarded, identifying and cached; Nominatim has a minimum 1-second gap
 (normally the longer guard jitter), no autocomplete or bulk mode. `--offline`
 on `commute.py` uses cache only. Geocodes cache for 30 days; departure-bucketed
 routes for one day. Unknown/offline/deferred never becomes a made-up travel time.
+Bike routing requests direct results with the profile's `max_commute_minutes`
+(`commute.py --max-minutes`), defaulting to and capped at 90 minutes.
 
 Draft templates: German **Sie** for flats, German **du** for WGs, English and a
 German cover letter. Missing facts remain `[PLACEHOLDER]` fields. Output is a
