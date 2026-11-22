@@ -19,10 +19,10 @@ from models import normalize
 from rent_check import assess as rent_assess
 from scam_check import assess as scam_assess
 from report import write as write_shortlist
-from sources import immoscout, inberlinwohnen, kleinanzeigen, wggesucht, wunderflats
+from sources import deutschewohnen, immoscout, inberlinwohnen, kleinanzeigen, wggesucht, wunderflats
 
 
-SOURCES = {adapter.NAME: adapter for adapter in (inberlinwohnen, kleinanzeigen, immoscout, wggesucht, wunderflats)}
+SOURCES = {adapter.NAME: adapter for adapter in (inberlinwohnen, kleinanzeigen, immoscout, wggesucht, wunderflats, deutschewohnen)}
 
 
 def collect(selected, guard, max_warm=None, min_rooms=None, exclude=(), profile=None, weights=None,
