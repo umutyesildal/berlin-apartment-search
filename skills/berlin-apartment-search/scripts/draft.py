@@ -62,7 +62,8 @@ def main(argv=None):
     try:
         target = args.output.resolve()
         target.relative_to(Path('flat-search').resolve())
-        text = render(json.loads(args.profile.read_text()), args.ad.read_text() if args.ad else '', args.template)
+        text = render(json.loads(args.profile.read_text(encoding='utf-8')),
+                      args.ad.read_text(encoding='utf-8') if args.ad else '', args.template)
         target.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
         with target.open('x', encoding='utf-8') as stream:
             stream.write(text)

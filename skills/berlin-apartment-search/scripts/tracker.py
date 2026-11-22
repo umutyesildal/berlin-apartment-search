@@ -126,7 +126,7 @@ def main(argv=None):
     path = Path('flat-search/tracker.csv')
     try:
         if args.command == 'import':
-            report = json.loads(args.results.read_text())
+            report = json.loads(args.results.read_text(encoding='utf-8'))
             result = upsert(path, [member for group in report['groups'] for member in group['members']])
         elif args.command == 'list':
             result = read_rows(path)

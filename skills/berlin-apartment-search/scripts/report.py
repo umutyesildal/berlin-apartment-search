@@ -68,7 +68,7 @@ def main(argv=None):
     parser.add_argument('results', nargs='?', type=Path, default=Path('flat-search/results.json'))
     args = parser.parse_args(argv)
     try:
-        write(json.loads(args.results.read_text()))
+        write(json.loads(args.results.read_text(encoding='utf-8')))
         print('Written flat-search/shortlist.{md,html}')
         return 0
     except (OSError, ValueError, TypeError, KeyError) as error:

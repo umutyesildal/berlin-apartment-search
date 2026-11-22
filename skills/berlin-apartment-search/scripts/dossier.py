@@ -56,7 +56,7 @@ def main(argv=None):
     parser.add_argument('profile', type=Path)
     args = parser.parse_args(argv)
     try:
-        print(json.dumps(checklist(json.loads(args.profile.read_text())), ensure_ascii=False, indent=2))
+        print(json.dumps(checklist(json.loads(args.profile.read_text(encoding='utf-8'))), ensure_ascii=False, indent=2))
         return 0
     except (OSError, ValueError, TypeError, AttributeError) as error:
         parser.error(str(error))

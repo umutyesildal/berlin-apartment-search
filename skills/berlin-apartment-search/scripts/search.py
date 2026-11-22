@@ -139,7 +139,7 @@ def main(argv=None):
     parser.add_argument('--commute-mode', choices=('transit', 'bike'), default='transit')
     args = parser.parse_args(argv)
     try:
-        profile = json.loads(args.profile.read_text()) if args.profile else {}
+        profile = json.loads(args.profile.read_text(encoding='utf-8')) if args.profile else {}
         if not isinstance(profile, dict):
             raise ValueError('profile must be a JSON object')
         weights = weights_from(json.loads(args.weights))
