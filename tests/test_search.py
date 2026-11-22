@@ -1,6 +1,7 @@
 import io
 import json
 import tempfile
+from http.client import IncompleteRead, RemoteDisconnected
 from pathlib import Path
 from unittest.mock import Mock, patch
 from support import OfflineTest, fixture
@@ -10,6 +11,24 @@ from search import collect, main, markdown, write_report
 
 
 class SearchTests(OfflineTest):
+    def test_mid_body_failure_preserves_other_sources_and_writes_results(self):
+        for error in (IncompleteRead(b'partial', 100), RemoteDisconnected('disconnected')):
+            with self.subTest(error=type(error).__name__), tempfile.TemporaryDirectory() as directory:
+                broken = Mock()
+                broken.__enter__ = Mock(return_value=broken)
+                broken.__exit__ = Mock(return_value=False)
+                broken.read.side_effect = error
+                opener = Mock()
+                opener.open.side_effect = [broken, io.BytesIO(fixture('kleinanzeigen.html').encode())]
+                with patch('search.Path.cwd', return_value=Path(directory)), patch('guard.build_opener', return_value=opener):
+                    with patch('sys.stdout', new_callable=io.StringIO):
+                        self.assertEqual(main(['--source', 'inberlinwohnen', '--source', 'kleinanzeigen']), 1)
+                report = json.loads((Path(directory) / 'flat-search/results.json').read_text())
+                self.assertEqual(report['sources']['inberlinwohnen']['status'], 'error')
+                self.assertEqual(report['sources']['kleinanzeigen']['returned'], 2)
+                self.assertEqual(opener.open.call_count, 2)
+                self.assertTrue((Path(directory) / 'flat-search/results.md').is_file())
+
     def test_fanout_normalization_and_assessments(self):
         guard = Mock()
         guard.fetch.side_effect = [fixture('inberlinwohnen.html'), fixture('kleinanzeigen.html'), fixture('immoscout.json')]

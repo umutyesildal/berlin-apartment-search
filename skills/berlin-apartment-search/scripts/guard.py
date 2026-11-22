@@ -6,6 +6,7 @@ import re
 import sqlite3
 import time
 from contextlib import contextmanager
+from http.client import HTTPException
 from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
@@ -107,7 +108,7 @@ class Guard:
             if error.code in (403, 429):
                 self.block(site, 'HTTP ' + str(error.code))
             raise SourceError('HTTP ' + str(error.code)) from error
-        except (URLError, TimeoutError, OSError) as error:
+        except (URLError, TimeoutError, OSError, HTTPException) as error:
             raise SourceError('network failure: ' + type(error).__name__) from error
         self.check_body(site, text)
         return text
