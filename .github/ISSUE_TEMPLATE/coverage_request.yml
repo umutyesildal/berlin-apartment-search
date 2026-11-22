@@ -1,5 +1,5 @@
 name: Coverage request
-description: Suggest a source or Berlin topic for a future phase
+description: Suggest a public source or a topic for Berlin rental guidance
 body:
   - type: textarea
     id: request

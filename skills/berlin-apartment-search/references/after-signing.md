@@ -11,7 +11,7 @@ Registration after moving into a dwelling is generally required within two
 weeks under §17 BMG, subject to statutory exceptions. Obtain the
 Wohnungsgeberbestätigung (housing-provider confirmation) under §19 BMG; it is
 not simply a substitute name for a rental contract. Confirm current appointment
-procedures with Berlin's service portal. P0 books nothing for you.
+procedures with Berlin's service portal. This skill does not book appointments.
 
 Sources (current law/service information, consulted 2026):
 - https://www.gesetze-im-internet.de/bmg/__17.html

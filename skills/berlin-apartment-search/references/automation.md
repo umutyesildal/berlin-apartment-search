@@ -2,8 +2,9 @@
 
 Data-as-of: 2026-11-22. **Orientation, not legal advice.**
 
-`watch.py` performs exactly one search→new-state claim→score/report→optional
-self-notification and exits. It has no internal loop, application sending,
+`watch.py` performs one search, selects new listings under a state lock, scores
+them, writes reports, commits seen state, optionally notifies you, and exits.
+It has no internal loop, application sending,
 browser automation or inbox access. Run from the repository root: the working
 directory determines the shared private `flat-search/` state. Do not create a
 new state directory for each run, erase seen state or reset a cooldown.
@@ -26,13 +27,18 @@ them intact and reports its current source statuses on stdout.
 
 Profiles are validated before search. Seen claims are SQLite-serialized across
 processes and commit only after enrichment and report writing succeed; preparation
-failures roll back the claims. Delivery happens after commit. `first_seen` is local observation time; `notified_at` is an attempt
+failures roll back the claims. Delivery happens after commit. `first_seen` is
+local observation time; `notified_at` is an attempt
 claim, not a service delivery guarantee. `delivery` records disabled/dry_run/
 attempted/sent/failed. A crash or send failure is deliberately not retried:
 at-most-once can lose a notification after commit, but its report is already written.
 Dry-run also consumes seen state. Inspect private local reports/state when a
 run fails; no automatic replay. Possible cross-portal duplicates can be distinct
 units, so review heuristic suppression manually.
+
+The saved JSON report records the pre-delivery status; the database's `delivery`
+field and the command's stdout record the eventual receipt. A notification names
+its local run file, not a hosted link accessible from another device.
 
 The commands below use notification dry-run and fictional paths. Set up the
 repository and create/protect `flat-search/` before log redirection. Replace
@@ -42,7 +48,7 @@ These examples install nothing by themselves.
 ## cron (user crontab)
 
 ```cron
-15 */2 * * * cd /ABSOLUTE/PATH/berlin-apartment-search && /usr/bin/python3 skills/berlin-apartment-search/scripts/watch.py --source inberlinwohnen --notify ntfy --dry-run >> flat-search/watch.log 2>&1
+15 */2 * * * umask 077; cd /ABSOLUTE/PATH/berlin-apartment-search && /usr/bin/python3 skills/berlin-apartment-search/scripts/watch.py --source inberlinwohnen --notify ntfy --dry-run >> flat-search/watch.log 2>&1
 ```
 
 Use an absolute working directory and avoid another scheduler for the same
@@ -82,6 +88,7 @@ https://developer.apple.com/library/archive/documentation/MacOSX/Conceptual/BPSy
 Description=One-shot apartment watch
 [Service]
 Type=oneshot
+UMask=0077
 WorkingDirectory=%h/path/to/berlin-apartment-search
 ExecStart=/usr/bin/python3 %h/path/to/berlin-apartment-search/skills/berlin-apartment-search/scripts/watch.py --source inberlinwohnen --notify ntfy --dry-run
 ```
@@ -118,7 +125,7 @@ private credential mechanism. Never place values in profiles, commands, plist,
 crontab, unit files, logs or repository. Telegram accepts positive private chat
 IDs only; no groups/channels. ntfy is limited to HTTPS ntfy.sh topics: use an
 unguessable private topic and understand that knowledge of its URL permits access
-unless separately protected by the service. Messages contain only a new-count
+unless separately protected by the service. Messages contain only a new-listing count
 and local-report reminder; drafts/documents are never sent. Receipts omit secrets.
 Docs (2026): https://docs.ntfy.sh/publish/ and
 https://core.telegram.org/bots/api#sendmessage .

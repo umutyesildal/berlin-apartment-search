@@ -11,7 +11,7 @@ Public data can be incomplete or stale.
 |---|---|---|
 | `inberlinwohnen` | GET `https://www.inberlinwohnen.de/wohnungsfinder/?page=1`; decode HTML `wire:snapshot` attributes, unwrap Livewire array markers, read `data.item` | Municipal-company feed; local filters only; no full-inventory claim |
 | `kleinanzeigen` | GET `https://www.kleinanzeigen.de/s-wohnung-mieten/berlin/c203l3331`; parse public `article[data-adid]` cards and optional JSON-LD | Asking-price basis often ambiguous; preserve price without inventing cold/warm rent; local filters |
-| `wggesucht` | GET `https://www.wg-gesucht.de/wg-zimmer-in-Berlin.8.0.1.0.html`; public `offer_list_item` / `wgg_card` HTML | Berlin WG-room category, page one; no detail requests; rent remains asking unless explicitly labelled Gesamtmiete |
+| `wggesucht` | GET `https://www.wg-gesucht.de/wg-zimmer-in-Berlin.8.0.1.0.html`; public `offer_list_item` / `wgg_card` HTML | Berlin shared-room category, page one; no detail requests; rent remains asking unless explicitly labelled Gesamtmiete (total rent) |
 | `wunderflats` | GET `https://wunderflats.com/en/furnished-apartments/berlin`; SSR `article.Listing` cards and Apartment JSON-LD | Furnished temporary rentals, page one; preserve asking price without guessing cold/warm basis |
 | `deutschewohnen` | GET `https://www.deutsche-wohnen.com/api/real-estate/search-token`, then GET `https://www.deutsche-wohnen.com/api/deuwo-real-estate/list` with `X-VON-Search-Token`, Accept JSON and Referer | Public short-lived search token, no account authentication or token persistence; Berlin/miete/wohnung/dataSet=deuwo, limit 50, parking flags 0; two guarded requests, first page only, local filters |
 | `immoscout` | ImmoScout24 anonymous POST `https://api.mobile.immobilienscout24.de/search/list`, JSON body `{"supportedResultListTypes":[],"userData":{}}`, Accept/Content-Type JSON, app User-Agent `ImmoScout_28.9_27.2_._`; Berlin region geocodes `/de/berlin/berlin`, `realestatetype=apartmentrent`, page 1 | Included by default, no separate opt-in; API may change |
@@ -44,7 +44,7 @@ and heuristic type tags. Missing values stay null. Search-card data does not
 support all fields. Possible duplicate clusters preserve all member listings.
 The CSV tracker persists imports across runs without overwriting user status,
 verdict or notes, with serialized read-modify-write operations. One-shot watch
-keeps durable seen/notification-attempt state separately; see automation.md.
+keeps durable seen and notification-attempt state separately; see [automation](automation.md).
 
 Deutsche Wohnen live evidence (2026-11-22): the public token→list flow worked;
 the corrected live watch returned/kept 50 Berlin offers, unblocked, with ntfy
@@ -77,7 +77,7 @@ pages or exported .eml alerts offline; no tracking redirects, remote assets,
 inbox access, cookies or browser automation. Recognized direct links include
 Immowelt, the mobile-source portal, Kleinanzeigen, WG-Gesucht, Wunderflats,
 HousingAnywhere and Ohne-Makler. JSON-LD can support other portals; unsupported
-shapes remain unrecognized. See browser-recipe.md. Official portal entry
+shapes remain unrecognized. See the [browser recipe](browser-recipe.md). Official portal entry
 points (2026): https://www.inberlinwohnen.de/wohnungsfinder/ and
 https://www.kleinanzeigen.de/s-wohnung-mieten/berlin/c203l3331
 

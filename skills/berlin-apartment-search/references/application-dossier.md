@@ -2,8 +2,14 @@
 
 Data-as-of: 2026-11-22. **Orientation, not legal advice.**
 
-P1 can draft local contact messages/letters from volunteered profile facts and
-check document-date metadata. It never uploads documents or contacts advertisers.
+The tools can draft local contact messages and cover letters from volunteered
+profile facts and check document-date metadata. They never upload documents or
+contact advertisers. Drafts contain visible placeholders for missing facts.
+
+The checklist uses a three-calendar-month freshness heuristic for SCHUFA and the
+last three completed payroll months for payslips. These are preparation checks,
+not universal legal requirements. Store only dates and payroll periods in the
+profile, not document scans or identity numbers.
 Privately gather only what is requested and appropriate at the relevant stage:
 contact details, household size, income/employment evidence, WBS if applicable,
 and a creditworthiness confirmation if justified. Redact unrelated transactions,
