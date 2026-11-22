@@ -40,7 +40,8 @@ def private_file(path, mode='w', encoding='utf-8'):
     private_directory(path.parent)
     descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | flags[mode] | getattr(os, 'O_NOFOLLOW', 0), 0o600)
     try:
-        os.fchmod(descriptor, 0o600)
+        if hasattr(os, 'fchmod'):
+            os.fchmod(descriptor, 0o600)
         with os.fdopen(descriptor, mode, encoding=encoding, closefd=False) as stream:
             yield stream
     finally:

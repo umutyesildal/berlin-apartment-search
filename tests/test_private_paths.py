@@ -19,6 +19,15 @@ from private_paths import private_directory, private_file
 
 
 class PrivatePathTests(OfflineTest):
+    def test_private_writes_and_guard_work_without_os_fchmod(self):
+        with tempfile.TemporaryDirectory() as directory, working_directory(directory), patch.dict(os.__dict__):
+            os.__dict__.pop('fchmod', None)
+            Guard()
+            with private_file('flat-search/fictional.txt') as stream:
+                stream.write('fictional private output')
+            self.assertEqual(Path('flat-search/fictional.txt').read_text(encoding='utf-8'), 'fictional private output')
+            self.assertTrue(Path('flat-search/guard.sqlite').is_file())
+
     def test_private_file_modes_existing_permissions_and_atomic_temporary_files(self):
         with tempfile.TemporaryDirectory() as directory, working_directory(directory):
             with private_file('flat-search/private.txt', 'x') as stream:
