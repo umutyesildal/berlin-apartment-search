@@ -1,0 +1,7 @@
+name: Coverage request
+description: Suggest a source or Berlin topic for a future phase
+body:
+  - type: textarea
+    id: request
+    attributes:
+      label: Requested coverage and public official sources

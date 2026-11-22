@@ -1,0 +1,13 @@
+{
+  "name": "berlin-apartment-search",
+  "displayName": "Berlin Apartment Search",
+  "version": "0.1.0",
+  "description": "Local-first Berlin rental search, triage and scam/rent orientation.",
+  "author": {"name": "Umut Yesildal", "url": "https://github.com/umutyesildal"},
+  "homepage": "https://github.com/umutyesildal/berlin-apartment-search",
+  "repository": "https://github.com/umutyesildal/berlin-apartment-search",
+  "license": "MIT",
+  "keywords": ["berlin", "housing", "rental", "apartment-search"],
+  "skills": ["./skills/berlin-apartment-search"],
+  "commands": ["./.claude/commands/"]
+}

@@ -1,0 +1,11 @@
+{
+  "name": "berlin-apartment-search",
+  "version": "0.1.0",
+  "description": "Local-first Berlin apartment search with read-only tools.",
+  "author": {"name": "Umut Yesildal", "url": "https://github.com/umutyesildal"},
+  "homepage": "https://github.com/umutyesildal/berlin-apartment-search",
+  "repository": "https://github.com/umutyesildal/berlin-apartment-search",
+  "license": "MIT",
+  "keywords": ["berlin", "housing", "rental"],
+  "skills": ["./skills/berlin-apartment-search"]
+}
