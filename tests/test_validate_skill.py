@@ -12,6 +12,13 @@ from validate_skill import validate
 
 
 class StructureTests(OfflineTest):
+    def test_environment_variants_are_ignored_except_public_example(self):
+        ignored = ['.env', '.env.local', '.env.production', 'nested/.env.local']
+        paths = ignored + ['.env.example', 'nested/.env.example']
+        result = subprocess.run(['git', 'check-ignore', '--no-index', '--stdin'], cwd=ROOT,
+                                input='\n'.join(paths) + '\n', text=True, capture_output=True)
+        self.assertEqual(set(result.stdout.splitlines()), set(ignored))
+
     def test_nested_private_files_are_excluded_from_both_archives(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory) / 'repo'
