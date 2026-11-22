@@ -1,0 +1,10 @@
+name: Bug report
+description: Report a reproducible problem without private listing/user data
+body:
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction with synthetic data
+      description: Include Python version, command and redacted error. No private records.
+    validations:
+      required: true

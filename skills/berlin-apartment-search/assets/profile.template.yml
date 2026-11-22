@@ -1,0 +1,21 @@
+# Interview checklist; not automatically parsed. Store your copy in ./flat-search/.
+household_size: null
+move_from: null
+minimum_duration_months: null
+max_warm_eur: null
+max_deposit_eur: null
+min_rooms: null
+min_area_m2: null
+districts: []
+wbs_status_and_type: unknown
+pets: unknown
+accessibility_needs: []
+schufa_available: unknown
+income_proof_available: unknown
+# Optional volunteered income range; never invent it or request account numbers.
+income_range: unknown
+commute_destinations: []
+allow_swap: false
+allow_wg: false
+allow_sublet: false
+allow_furnished_temporary: false

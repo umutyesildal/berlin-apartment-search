@@ -1,0 +1,14 @@
+{
+  "name": "berlin-apartment-search",
+  "owner": {"name": "Umut Yesildal", "url": "https://github.com/umutyesildal"},
+  "version": "0.1.0",
+  "description": "Local-first Berlin apartment search.",
+  "plugins": [{
+    "name": "berlin-apartment-search",
+    "source": "./",
+    "version": "0.1.0",
+    "description": "Berlin rental search, triage and cost checks.",
+    "category": "productivity",
+    "author": {"name": "Umut Yesildal"}
+  }]
+}

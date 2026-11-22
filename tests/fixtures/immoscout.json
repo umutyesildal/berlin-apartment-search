@@ -1,0 +1,14 @@
+{
+  "totalResults": 1,
+  "numberOfPages": 1,
+  "pageNumber": 1,
+  "resultListItems": [
+    {"type": "ADVERTISEMENT", "item": {}},
+    {"type": "EXPOSE_RESULT", "item": {
+      "id": "fiction-202", "title": "Fiktive Wohnung am Beispielpark",
+      "address": {"line": "Fiktivweg 99, 10000 Berlin, Beispielbezirk", "lat": 52.5, "lon": 13.4},
+      "published": "heute",
+      "attributes": [{"label": "", "value": "830 €"}, {"label": "", "value": "60,5 m²"}, {"label": "", "value": "2 Zi."}]
+    }}
+  ]
+}
