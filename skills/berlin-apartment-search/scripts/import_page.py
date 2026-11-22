@@ -123,8 +123,18 @@ def anchor_link(node, base_url):
 def visible_text(node, excluded):
     if id(node) in excluded or node.tag in ('script', 'style', 'svg', 'head', 'title'):
         return ''
-    return ' '.join(part for part in (child if isinstance(child, str) else visible_text(child, excluded)
-                                     for child in node.children) if part.strip()).strip()
+    if node.tag == 'br':
+        return '\n'
+    parts = [child if isinstance(child, str) else visible_text(child, excluded) for child in node.children]
+    text = ' '.join(part for part in parts if part)
+    text = re.sub(r'[ \t\r]*\n[ \t\r]*', '\n', text)
+    text = re.sub(r'\n+', '\n', text).strip()
+    if node.tag in ('dt', 'dd', 'tr', 'td', 'th', 'li', 'div', 'p', 'section', 'article',
+                    'main', 'dl', 'table', 'ul', 'ol', 'h1', 'h2', 'h3'):
+        if re.fullmatch(r'Kaltmiete|Nettokaltmiete|Warmmiete|Gesamtmiete|Nebenkosten|Betriebskosten|Kaution', text, re.I):
+            text += ':'
+        return '\n' + text + '\n'
+    return text
 
 
 def parse_html(text, base_url='', require_facts=True):
@@ -197,7 +207,7 @@ def parse_html(text, base_url='', require_facts=True):
         if len(links) == 1:
             link, title = next(iter(links.values()))
             heading = next((child.text() for child in node.walk() if child.tag in ('h1', 'h2', 'h3')), '')
-            rows.append(from_text(node.text(), link, heading or title))
+            rows.append(from_text(visible_text(node, set()), link, heading or title))
     for node in root.walk():
         if node.tag == 'a':
             if (set(node.attrs.get('rel', '').casefold().split()).intersection(('next', 'prev')) or
@@ -230,7 +240,7 @@ def parse_html(text, base_url='', require_facts=True):
                 else:
                     excluded.add(id(node))
             heading = next((child.text() for child in context.walk() if child.tag in ('h2', 'h3')), node.text())
-            row = from_text(context.text(), link, heading)
+            row = from_text(visible_text(context, set()), link, heading)
             if row:
                 rows.append(row)
     if main_identity:

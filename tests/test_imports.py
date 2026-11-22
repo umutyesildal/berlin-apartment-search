@@ -12,6 +12,23 @@ FIXTURES = ROOT / 'tests' / 'fixtures'
 
 
 class ImportTests(OfflineTest):
+    def test_html_rent_fields_keep_block_boundaries(self):
+        url = 'https://www.immowelt.de/expose/fictional-fields'
+        for name in ('saved_rent_dl.html', 'saved_rent_table.html'):
+            with self.subTest(fixture=name):
+                row = parse_html(fixture(name), url)[0]
+                self.assertEqual((row.cold_eur, row.warm_eur), (700, 900))
+        for fields in ('<div>Kaltmiete:</div><div>700 €</div><div>Warmmiete:</div><div>900 €</div>',
+                       '<p>Kaltmiete:<br>700 €</p><p>Warmmiete:<br>900 €</p>',
+                       '<ul><li>700 € Kaltmiete</li><li>900 € Warmmiete</li></ul>'):
+            with self.subTest(fields=fields):
+                row = parse_html('<main><h1>Flat</h1>' + fields + '</main>', url)[0]
+                self.assertEqual((row.cold_eur, row.warm_eur), (700, 900))
+        row = parse_html('<main><h1>Flat</h1><dl><dt>Kaltmiete</dt><dd></dd>'
+                         '<dt>Warmmiete</dt><dd>900 €</dd></dl></main>', url)[0]
+        self.assertIsNone(row.cold_eur)
+        self.assertEqual(row.warm_eur, 900)
+
     def test_html_alert_keeps_supported_links_without_facts_but_saved_shell_does_not(self):
         html = ('<p><a href="https://www.immowelt.de/expose/fictional-alert">View offer</a></p>'
                 '<p><a href="https://www.immobilienscout24.de/expose/123456">Other offer</a></p>'
