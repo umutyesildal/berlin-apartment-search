@@ -1,0 +1,10 @@
+Hallo zusammen,
+
+ich interessiere mich für euer WG-Angebot und würde euch gern kennenlernen.
+
+Ich heiße {{full_name}}. Über mich: {{about_me}}
+Mein gewünschter Einzug ist {{move_from}}.
+
+Passt ein Kennenlernen für euch?
+Viele Grüße
+{{full_name}}

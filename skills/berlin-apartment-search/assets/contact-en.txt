@@ -1,0 +1,11 @@
+Hello,
+
+I am interested in the advertised accommodation and would appreciate a viewing.
+
+Name: {{full_name}}
+Household size: {{household_size}}
+Preferred move-in: {{move_from}}
+About me/us: {{about_me}}
+
+Kind regards,
+{{full_name}}
