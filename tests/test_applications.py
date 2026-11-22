@@ -1,6 +1,7 @@
 import io
 import json
 import tempfile
+import threading
 from datetime import date
 from pathlib import Path
 from unittest.mock import patch
@@ -11,6 +12,52 @@ from tracker import main as tracker_main, read_rows, update, upsert
 
 
 class TrackerTests(OfflineTest):
+    def test_concurrent_import_cannot_overwrite_newer_user_update(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'tracker.csv'
+            listing = {'id': 'fiction:1', 'title': 'Original'}
+            upsert(path, [listing])
+            read, resume, updated = threading.Event(), threading.Event(), threading.Event()
+            errors = []
+
+            def delayed_read(target):
+                rows = read_rows(target)
+                if threading.current_thread().name == 'importer':
+                    read.set()
+                    if not resume.wait(3):
+                        raise RuntimeError('importer timed out')
+                return rows
+
+            def import_listing():
+                try:
+                    upsert(path, [dict(listing, title='Refetched')])
+                except Exception as error:
+                    errors.append(error)
+
+            def update_listing():
+                try:
+                    update(path, 'fiction:1', 'contacted', 'Newest user note', 'keep')
+                except Exception as error:
+                    errors.append(error)
+                finally:
+                    updated.set()
+
+            with patch('tracker.read_rows', side_effect=delayed_read):
+                importer = threading.Thread(target=import_listing, name='importer')
+                updater = threading.Thread(target=update_listing, name='updater')
+                importer.start()
+                self.assertTrue(read.wait(3))
+                updater.start()
+                updated.wait(0.2)
+                resume.set()
+                importer.join(3)
+                updater.join(3)
+            self.assertFalse(importer.is_alive() or updater.is_alive())
+            self.assertEqual(errors, [])
+            row = read_rows(path)[0]
+            self.assertEqual((row['status'], row['notes'], row['verdict']), ('contacted', 'Newest user note', 'keep'))
+            self.assertEqual(row['title'], 'Refetched')
+
     def test_cli_import_list_and_status(self):
         with tempfile.TemporaryDirectory() as directory, working_directory(directory):
             results = Path(directory) / 'results.json'

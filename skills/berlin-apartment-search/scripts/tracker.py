@@ -5,7 +5,10 @@ import csv
 import io
 import json
 import os
+import sqlite3
+from contextlib import closing
 from datetime import datetime, timezone
+from functools import wraps
 from pathlib import Path
 
 
@@ -47,6 +50,19 @@ def write_rows(path, rows):
     temporary.replace(path)
 
 
+def serialized(operation):
+    @wraps(operation)
+    def locked(path, *args, **kwargs):
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+        with closing(sqlite3.connect(str(path) + '.lock.sqlite', timeout=30)) as db:
+            with db:
+                db.execute('BEGIN IMMEDIATE')
+                return operation(path, *args, **kwargs)
+    return locked
+
+
+@serialized
 def upsert(path, listings):
     rows = read_rows(path)
     by_id = {row['id']: row for row in rows}
@@ -69,6 +85,7 @@ def upsert(path, listings):
     return rows
 
 
+@serialized
 def update(path, identifier, status=None, note=None, verdict=None):
     rows = read_rows(path)
     row = next((item for item in rows if item['id'] == identifier), None)
@@ -117,7 +134,7 @@ def main(argv=None):
             result = update(path, args.id, getattr(args, 'state', None), args.note, args.verdict)
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
-    except (OSError, ValueError, TypeError, KeyError, csv.Error) as error:
+    except (OSError, ValueError, TypeError, KeyError, csv.Error, sqlite3.Error) as error:
         parser.error(str(error))
 
 
