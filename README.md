@@ -1,181 +1,294 @@
 # Berlin Apartment Search
 
-A local-first apartment-search skill for Berlin. Search public offers from
-InBerlinWohnen and Kleinanzeigen, triage unsuitable ads, and check rental costs
-and scam signals. Python 3.9+, standard library only. P2, version 0.3.0.
+A local-first assistant skill and command-line toolkit for finding and reviewing
+Berlin rental apartments. Search public offers, compare fit and costs, spot
+warning signs, and prepare your next steps without handing over control of your
+applications.
 
-Features: transparent fit scores; optional cached public-transit/bike estimates;
-a local application tracker; factual contact/cover-letter drafts and dossier
-readiness checks; escaped Markdown/HTML shortlists; municipal, classifieds,
-WG-Gesucht and Wunderflats search. Furnished temporary rentals are tagged, not
-treated as equivalent to a normal long-term flat.
-One-shot new-listing watch, opt-in self-notifications and offline alert/page
-imports are included; blocked portals never trigger a browser bypass.
+**Python 3.9+ · standard library only · MIT · version 0.3.0**
 
-## What it does
+English is the canonical documentation. [German translation](README.de.md).
 
-- One-page, read-only search with normalized JSON and Markdown results.
-- Conservative duplicate suggestions, noise classification and untrusted-text checks.
-- Weighted scam signals and rent/deposit arithmetic, with missing facts left unknown.
-- Sourced Berlin guidance on WBS, municipal housing, moving in and newcomers.
-- Local data only in gitignored `./flat-search/`; core search needs no account or API key.
+## What you can do
 
-This is **orientation, not legal advice**. It neither finds every available flat
-nor proves that a listing is safe or its rent lawful. Listings may be stale.
+- **Search public listings** from InBerlinWohnen, Kleinanzeigen, WG-Gesucht,
+  Wunderflats and Deutsche Wohnen. See the [full source reference](skills/berlin-apartment-search/references/sources.md)
+  for all adapters, access methods and limits.
+- **Triage results** with one normalized listing format, possible-duplicate
+  groups, and tags for swaps, shared rooms, sublets, wanted ads and furnished or
+  temporary rentals. Nothing is excluded unless you ask.
+- **Review scam and rent signals:** weighted, negation-aware warnings;
+  prompt-injection checks; rent per square metre; conditional rent-cap and
+  deposit checks; and broad ancillary-cost plausibility checks.
+- **Compare preference fit** with a transparent 0–100 score and reasons for
+  budget, size, rooms, district, value, costs, freshness and available commute.
+  Missing inputs are neutral, not good news. Safety and legal flags stay separate.
+- **Estimate optional commutes** with cached Nominatim geocoding and Transitous
+  public-transport or direct bicycle routes. Offline or missing routes stay unknown.
+- **Prepare applications locally:** a tracker that preserves your notes and
+  decisions, factual German or English message drafts, a cover letter, and a
+  document-readiness checklist based on date metadata rather than document contents.
+- **Read escaped Markdown and self-contained HTML shortlists** with scores,
+  flags, links and duplicate groups. No remote assets or scripts are embedded.
+- **Watch once for new listings**, retain a shortlist for each new-listing run,
+  and optionally notify only yourself through ntfy or Telegram.
+- **Import exported alert emails and saved pages offline**, including pages you
+  choose to save from your own browser when automated access is unavailable.
 
-## Install
+Berlin references cover rental law, the Mietspiegel, WBS eligibility, municipal
+housing, districts, scams, application documents, newcomers and moving in.
+They are dated and sourced: **orientation, not legal advice**.
+
+## Safety model
+
+**You contact advertisers and submit applications yourself.** These tools never
+log in to portals, fill forms, book viewings, create accounts, send application
+drafts or upload documents. The only outbound-message exception is an explicitly
+enabled notification to your own private destination.
+
+Every source, commute and notification request passes through a persisted guard:
+
+- At most **6 requests per rolling hour and 30 per rolling day per service**,
+  with 3–7 seconds of jitter and no automatic retries.
+- HTTP 403/429 and detected challenge pages trigger escalating cooldowns of
+  15 minutes, 1 hour, 3 hours and 12 hours. Failures and unsupported response
+  shapes are reported, not presented as valid empty inventory.
+- No CAPTCHA solving, proxy rotation, stealth, browser automation or cookie reuse.
+  Do not erase guard state or speed up a schedule to bypass a block.
+
+Listing text and imported emails are untrusted data, never agent instructions.
+Checks are heuristic: no warnings does **not** mean safe, and a warning does not
+prove fraud. Verify the listing, the contracting party and any legal conclusion.
+
+## Install for your client
+
+The Python tools need no package installation, virtual environment or API key
+for core search. Examples below use a POSIX shell and `python3`; on Windows,
+use your Python launcher and equivalent file-copy commands.
+
+### Local checkout
+
+```bash
+git clone https://github.com/umutyesildal/berlin-apartment-search.git
+cd berlin-apartment-search
+python3 --version
+```
+
+Run all tools from this repository root so they share the same private state.
 
 ### Claude Code
+
+In Claude Code, add the marketplace and install the plugin:
 
 ```text
 /plugin marketplace add umutyesildal/berlin-apartment-search
 /plugin install berlin-apartment-search@berlin-apartment-search
 ```
 
-### Codex and other agents
+For local development, open the checkout instead: `.claude/skills/` links to the
+canonical skill, and `.claude/commands/` supplies setup, search and review commands.
+The plugin instructions do not install Python or create your private profile.
 
-Open this repository and follow [AGENTS.md](AGENTS.md). The canonical skill is
-[SKILL.md](skills/berlin-apartment-search/SKILL.md), also linked under
-`.agents/skills/` and `.claude/skills/`. Claude and Codex plugin manifests are
-included. For chat-only clients, paste [the starter prompt](docs/chatgpt-prompt.md);
-without a local runtime they cannot execute the scripts or persist guard state.
-No hosted MCP service is required or shipped.
+### Codex
 
-## Start
+Open the checkout as your working project. Read [AGENTS.md](AGENTS.md), then ask
+Codex to use `$berlin-apartment-search`. The repository includes
+`.agents/skills/berlin-apartment-search`, a symlink to the canonical skill, and
+a `.codex-plugin/` manifest. If your client does not discover the skill, point
+it directly to [SKILL.md](skills/berlin-apartment-search/SKILL.md).
 
-Ask: “Help me look for a Berlin apartment.” The agent starts a short setup
-interview using [the profile template](skills/berlin-apartment-search/assets/profile.template.yml).
-Do not put your identity documents in this repository. Store private files only
-in `./flat-search/` and protect that directory on your own machine.
+### Other `.agents`-compatible clients
 
-From the repository root:
+Open the checkout and enable `.agents/skills/berlin-apartment-search` using your
+client's local-skill mechanism. If symlinks are unavailable, use the canonical
+`skills/berlin-apartment-search/` directory; do not maintain a second edited copy.
+Discovery and marketplace support depend on the client version.
+
+### ChatGPT and other chat-only clients
+
+Start with [the chat prompt](docs/chatgpt-prompt.md). Without a local runtime,
+the chat can review pasted text and explain the workflow, but cannot run these
+scripts, persist cooldowns, search live or schedule a watch on your machine.
+Review the chat provider's data policy before pasting private information.
+
+For clients that support uploaded skill files, build the portable archive:
 
 ```bash
-python3 skills/berlin-apartment-search/scripts/search.py --source inberlinwohnen
-python3 skills/berlin-apartment-search/scripts/search.py --source kleinanzeigen --max-warm 1300 --min-rooms 2
-python3 skills/berlin-apartment-search/scripts/search.py --help
+python3 tools/package_skill.py
 ```
 
-With no `--source`, the CLI fans out once to all adapters. See
-[source methods and limitations](skills/berlin-apartment-search/references/sources.md)
-before running. Local filters are not a completeness guarantee: only the first
-page is fetched. Unknown rent/room values remain visible for manual review.
-Use `--exclude swap,wg,sublet,wanted,furnished,temporary` to hide tagged noise;
-the default keeps it visible. YAML is an interview aid; copy
-[the JSON profile](skills/berlin-apartment-search/assets/profile.template.json)
-to `flat-search/profile.json` for CLI scoring and drafts. CLI arguments control
-hard search filters; profile preferences only influence fit.
+The archive is written to `dist/berlin-apartment-search.zip`. An experimental
+OpenAI-style bundle is also available; see [packaging notes](packaging/openai/README.md).
+Neither archive implies acceptance by a client or marketplace. No hosted MCP
+server is shipped or required.
 
-Results: `flat-search/results.json`, `flat-search/results.md`; guard state:
-`flat-search/guard.sqlite`. Source status is always reported, including partial
-failures. Exit 0 means all selected sources returned valid results (possibly
-empty), 1 means a blocked/deferred/error source, and 2 is invalid CLI input.
-Search also writes `flat-search/shortlist.md` and `flat-search/shortlist.html`.
-External text is escaped, not trusted instructions. Shortlist links accept HTTPS
-only; inspect URLs before opening. The HTML uses no remote assets or scripts.
+## Quick start: an offline demonstration
 
-## P1 local tools
+These commands use **fictional test fixtures**, not current rental offers.
+They work without network access, credentials or personal documents.
 
 ```bash
-python3 skills/berlin-apartment-search/scripts/search.py --source wggesucht --profile flat-search/profile.json --weights '{"budget":35}'
-python3 skills/berlin-apartment-search/scripts/search.py --source wunderflats
-python3 skills/berlin-apartment-search/scripts/report.py flat-search/results.json
-python3 skills/berlin-apartment-search/scripts/tracker.py import flat-search/results.json
+umask 077
+mkdir -p flat-search
+cp -n skills/berlin-apartment-search/assets/profile.template.json flat-search/profile.json
+
+python3 skills/berlin-apartment-search/scripts/import_page.py tests/fixtures/saved_page.html
+python3 skills/berlin-apartment-search/scripts/alerts.py tests/fixtures/alert_immowelt.eml
+python3 skills/berlin-apartment-search/scripts/report.py flat-search/imported-page/results.json
+python3 skills/berlin-apartment-search/scripts/tracker.py import flat-search/imported-page/results.json
 python3 skills/berlin-apartment-search/scripts/tracker.py list
-python3 skills/berlin-apartment-search/scripts/draft.py --profile flat-search/profile.json --ad flat-search/ad.txt --template contact-de-sie
+python3 skills/berlin-apartment-search/scripts/draft.py --profile flat-search/profile.json --template contact-en
 python3 skills/berlin-apartment-search/scripts/dossier.py flat-search/profile.json
-python3 skills/berlin-apartment-search/scripts/commute.py --origin "Alexanderplatz Berlin" --to-coordinates 52.5251 13.3694
+python3 skills/berlin-apartment-search/scripts/notify.py --provider ntfy --message "Apartment search test" --dry-run
 ```
 
-Fit is 0–100 with a reason per factor. Missing inputs stay neutral at 50, so 50
-may mean entirely unknown, not medium quality. Scam/rent/integrity flags remain
-separate. Default factor weights are at the top of `fit_score.py`; override them
-with `--weights` JSON. `value_eur_m2` is an optional user-supplied cold-rent value
-benchmark, not a legal determination. Freshness requires an ISO `posted_at` date.
+The saved-page fixture deliberately contains an untrusted instruction so you can
+see an integrity warning. Do not follow it. Inspect the imported report under
+`flat-search/imported-page/` and the regenerated `flat-search/shortlist.html`.
+The draft contains visible placeholders because the profile has no personal facts.
+Drafts refuse to overwrite existing files; use `--output flat-search/another-draft.txt`
+for a second draft. Do not overwrite an existing private profile when repeating
+this setup: copy the template only for a new profile.
 
-Commute is opt-in: search accepts `--commute-to LAT LON` and
-`--commute-mode transit|bike`, using existing listing coordinates only. Public
-place geocoding sends the query to Nominatim; routing sends coordinates to
-Transitous. Do not send a private home/work address without consent. Requests
-are guarded, identifying and cached; Nominatim has a minimum 1-second gap
-(normally the longer guard jitter), no autocomplete or bulk mode. `--offline`
-on `commute.py` uses cache only. Geocodes cache for 30 days; departure-bucketed
-routes for one day. Unknown/offline/deferred never becomes a made-up travel time.
-Bike routing requests direct results with the profile's `max_commute_minutes`
-(`commute.py --max-minutes`), defaulting to and capped at 90 minutes.
+## Search real offers
 
-Draft templates: German **Sie** for flats, German **du** for WGs, English and a
-German cover letter. Missing facts remain `[PLACEHOLDER]` fields. Output is a
-new local file only; verify facts and any extracted code-word before sending
-yourself. The draft command refuses overwrites. Dossier checks use issued-date
-metadata, not document contents. Three-month SCHUFA freshness is a preparation
+After reviewing [source coverage](skills/berlin-apartment-search/references/sources.md),
+edit `flat-search/profile.json` with only the facts and preferences you volunteer.
+The [YAML checklist](skills/berlin-apartment-search/assets/profile.template.yml)
+supports an agent-led interview; the CLI reads **JSON**, not YAML.
+
+The following commands make network requests:
+
+```bash
+python3 skills/berlin-apartment-search/scripts/search.py --source inberlinwohnen --max-warm 1300 --min-rooms 2 --profile flat-search/profile.json
+python3 skills/berlin-apartment-search/scripts/search.py --source wggesucht --source wunderflats --profile flat-search/profile.json --weights '{"budget":35}'
+```
+
+Repeat `--source` to choose adapters. Omitting it calls **all bundled adapters**;
+read the source reference first. Each fetches only the first results page, with
+local filters rather than an exhaustive portal search. Missing rent or room
+values remain visible. CLI filters control exclusions; profile preferences
+control scoring and do not silently become hard filters.
+
+Use `--exclude swap,wg,sublet,wanted,furnished,temporary` only if you want those
+heuristic tags hidden. A fit score of 50 may mean entirely unknown inputs, not
+average quality. An unlabelled price stays asking rent, not assumed warm rent.
+The optional `value_eur_m2` preference is not a legal Mietspiegel determination.
+
+Search writes `flat-search/results.json`, `results.md`, `shortlist.md` and
+`shortlist.html`, including source statuses. Exit 0 means all selected sources
+returned valid responses, possibly empty; exit 1 means a partial or failed search;
+invalid CLI input exits 2. Never interpret a source failure as “no flats”.
+
+### Commutes and application preparation
+
+```bash
+python3 skills/berlin-apartment-search/scripts/commute.py --origin "Alexanderplatz Berlin" --to-coordinates 52.5251 13.3694 --mode bike --max-minutes 60
+```
+
+This opts into external geocoding and routing. Search can instead route from
+existing listing coordinates with `--commute-to LAT LON --commute-mode transit`
+or `bike`. Give consent before disclosing private home/work locations. Use
+`commute.py --offline` with the same origin/destination arguments for cache-only
+lookups; an uncached route is unknown and exits 1. Bike requests default to and
+are capped at 90 minutes. See [districts and commute](skills/berlin-apartment-search/references/districts.md).
+
+Draft templates are `contact-de-sie` (formal German for flats), `contact-de-du`
+(informal German for shared rooms), `contact-en` and `cover-letter`. Add
+`--ad flat-search/ad.txt` to review a locally saved ad for a requested code word.
+Never send without checking the facts, placeholders and untrusted ad text.
+The [dossier checklist](skills/berlin-apartment-search/references/application-dossier.md)
+uses document dates only; three-month credit-certificate freshness is a preparation
 heuristic, not a universal legal expiry.
 
-Tracker states: pending → contacted → viewing → applied → offer, with rejected
-or dead terminal states. `tracker.py status SOURCE:ID contacted --note "..."`
-records only a user-confirmed action. Refetch/import updates source metadata,
-not the user's verdict, notes or status. CSV and event history stay private.
+The tracker preserves your notes, verdict and status when metadata is refreshed.
+States progress from pending to contacted, viewing, applied and offer; rejected
+and dead are terminal outcomes. Record only actions you actually took, using
+`tracker.py status SOURCE:ID contacted --note "..."`. A draft never counts as sent.
 
-## Safety and scope
-
-No portal login, advertiser messages, form filling, retries, CAPTCHA solving,
-proxies or stealth. Optional notifications go only to your own private destination.
-Each site gets at most 6 requests/hour and 30/day, with 3–7 seconds of jitter
-between requests. Blocks persist escalating 15-minute / 1-hour / 3-hour / 12-hour
-cooldowns. HTTP 403/429, challenge pages and unrecognized/empty response shapes
-are never silently treated as empty inventory. Do not delete guard state to
-evade limits. Public access can break; use your own browser when blocked.
-
-You make all contacts and applications yourself.
-All implementation is original; no research-project code was copied.
-
-## P2 watch and offline imports
+## Watch and optional self-notifications
 
 ```bash
 python3 skills/berlin-apartment-search/scripts/watch.py --source inberlinwohnen --profile flat-search/profile.json --notify ntfy --dry-run
+```
+
+**Here `--dry-run` disables notification delivery only. It still searches live
+and permanently records seen listings.** A watch runs once and exits; it does
+not install a scheduler. Schedule no more often than every two hours, without
+overlap or catch-up bursts; see [automation examples](skills/berlin-apartment-search/references/automation.md).
+
+New runs write timestamped `flat-search/watch/runs/<timestamp>.md` and `.html`
+shortlists and update the latest report under `flat-search/watch/`. Zero-new runs
+leave the previous latest report intact. Seen state lives in `flat-search/watch.sqlite`.
+Claims commit only after scoring and report writing succeed. `first_seen` is a
+local observation, not a publication date; `notified_at` records an attempted
+delivery, not proof of receipt. Delivery outcomes are recorded in the database.
+At-most-once delivery can lose a notification after a crash; it does not retry
+seen listings after failed, disabled or dry-run delivery. Review the saved report
+instead of erasing state to trigger another notification.
+
+Real delivery requires `--confirm-self` and credentials supplied **only through
+the process environment**: `NTFY_TOPIC_URL`, or `TELEGRAM_BOT_TOKEN` plus
+`TELEGRAM_CHAT_ID`. Do not put values in profiles, command lines, scheduler files,
+logs or the repository. Only HTTPS ntfy.sh topics and positive private Telegram
+chat IDs are supported, not groups/channels. An unguessable ntfy topic URL is a
+bearer secret, not a privacy guarantee. Messages contain only a count and the
+local run-report path; the recipient device must access that local file separately.
+
+## Import your own alerts and pages
+
+```bash
 python3 skills/berlin-apartment-search/scripts/alerts.py flat-search/exports/alert.eml
 python3 skills/berlin-apartment-search/scripts/import_page.py flat-search/saved/page.html --url https://www.immowelt.de/expose/FICTIONAL-ID
 ```
 
-Watch runs once, suppresses seen IDs/URLs and conservative cross-portal matches,
-scores only new groups and writes `flat-search/watch/results.json` and escaped
-shortlists. Durable state lives in `flat-search/watch.sqlite`. `first_seen` is a
-local observation (labelled freshness fallback), not a portal publication date.
-`notified_at` records a precommitted attempt; `delivery` records the outcome.
-At-most-once is deliberate: seen items are never automatically retried after
-delivery failures, disabled notifications or dry runs. Profile validation precedes
-search; claims commit only after enrichment and report writing succeed. Preparation
-failures roll back seen state. A crash after commit can lose a notification, but
-its report is already written; never erase state to trigger re-notification.
-Timestamped shortlists in `watch/runs/` remain available, and zero-new runs do not
-overwrite latest. Possible duplicates can be different similar units.
+Supply your own exported `.eml` or UTF-8 page and replace the fictional URL with
+its original HTTPS listing URL; the importer never fetches it. `--text` accepts
+pasted plain text. Imports access no mailbox, attachments, cookies or remote
+assets and do not change watch seen state. HTML alerts retain supported links
+even when facts are unknown; a saved HTML shell without listing facts is rejected
+with a hint to save the fully loaded page. Results go to `flat-search/alerts/`
+or `flat-search/imported-page/`. Review every extracted fact before using it.
+See the [manual browser/import recipe](skills/berlin-apartment-search/references/browser-recipe.md).
 
-Notifications default off; dry-run sends nothing and needs no credentials but
-**does persist seen state**. For real delivery choose `--notify ntfy|telegram`
-and `--confirm-self`. Set `NTFY_TOPIC_URL` or `TELEGRAM_BOT_TOKEN` plus
-`TELEGRAM_CHAT_ID` only in the environment, never repository/profile/scheduler
-files or command-line arguments. Telegram accepts positive private chat IDs,
-not groups/channels; ntfy is restricted to HTTPS ntfy.sh topics. Use a private
-unguessable topic and understand that its URL is a bearer secret. Messages
-contain a count/local-report reminder, not listing text or personal data.
+## Data and privacy
 
-Export saved-search .eml files yourself or save/paste a page from your own
-browser. Imports use no network, browser automation, cookies, remote images,
-inbox access or attachments. Raw exports and generated files stay private.
-Output directories: `flat-search/alerts/` and `flat-search/imported-page/`.
-Unrecognized formats are reported, not called valid empty portal inventory.
-Imported entries are normalized, deduplicated and assessed as untrusted data;
-prices without an explicit basis stay asking rent. Email dates are not posted dates.
-Scheduling examples and the recommended **at least two-hour interval** are in
-[automation](skills/berlin-apartment-search/references/automation.md); blocked
-portal/manual-import guidance is in the [browser recipe](skills/berlin-apartment-search/references/browser-recipe.md).
+- Keep profiles, results, raw exports, caches, tracker data, logs, drafts and
+  document metadata inside gitignored **`./flat-search/`**. Never commit it.
+- On POSIX systems, tools create private directories with mode `0700` and files
+  with mode `0600`. Existing shared symlink targets are not chmodded. On Windows,
+  check your account and folder ACLs; POSIX modes are not an encryption or ACL guarantee.
+- The Python scripts have no telemetry, hosted backend or LLM calls. Portals see
+  your IP address; optional commute and notification providers receive the data
+  needed for those requests. Your agent client has its own processing policies.
+- Gitignore is not encryption or a backup. Protect local access, choose backups
+  deliberately, and inspect files before sharing them. Never post real records
+  in an issue. Read [PRIVACY.md](PRIVACY.md) and [SECURITY.md](SECURITY.md).
 
-## Develop
+## Limitations
+
+Page-one coverage is incomplete; portals, HTML layouts and APIs can change.
+Listings can be stale. Duplicate and text-classification heuristics can miss
+matches or suppress distinct similar units. Commutes are estimates, not service
+guarantees. Rent checks require a user-supplied applicable comparative value and
+dated source, plus manual consideration of exceptions. Nothing here certifies
+an ad, decides WBS eligibility or guarantees housing.
+
+Agent-client discovery, marketplace acceptance and client-specific rendering
+are not certified. Scheduler setup is manual. There is no automatic advertiser
+contact or application delivery, now or as a hidden part of watching.
+
+## Development and license
 
 ```bash
 python3 -m unittest discover -s tests -v
 python3 tools/validate_skill.py
 ```
 
-Tests use synthetic fixtures and deny network access. See [CONTRIBUTING.md](CONTRIBUTING.md),
-[SECURITY.md](SECURITY.md) and [MIT license](LICENSE).
+Tests use synthetic fixtures and deny network access. GitHub Actions runs these
+checks on Python 3.9 and 3.12. See [CONTRIBUTING.md](CONTRIBUTING.md),
+[AGENTS.md](AGENTS.md) and [CHANGELOG.md](CHANGELOG.md).
+
+Original implementation, released under the [MIT license](LICENSE), without
+warranty. Portal content and linked materials retain their own terms; see
+[NOTICE.md](NOTICE.md) and [TERMS.md](TERMS.md).

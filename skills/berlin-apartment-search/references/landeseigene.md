@@ -8,7 +8,8 @@ companies are degewo, GESOBAU, Gewobag, HOWOGE, STADT UND LAND and WBM; Berlinov
 also participates in the public-company portal. Do not assume every offer needs
 a WBS or that every participating company's stock appears on a given page.
 
-P0 reads the first public search page only, with no direct-company detail fetch.
+The municipal adapter reads only the first public search page, with no
+direct-company detail fetch.
 Ads may carry WBS and swap requirements that need manual confirmation. Never pay
 an intermediary claiming guaranteed access to a public-company flat.
 

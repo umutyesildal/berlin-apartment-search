@@ -6,7 +6,7 @@ Berlin has 12 administrative boroughs (Bezirke); neighborhoods/Ortsteile are not
 interchangeable with boroughs. Use an actual address to assess transit, access
 needs and noise, not borough-wide stereotypes or assumed safety scores.
 Confirm door-to-door travel at the relevant time with BVG/VBB. Listing location
-labels and approximate map pins may be inaccurate. P1 offers optional guarded,
+labels and approximate map pins may be inaccurate. The tools offer optional guarded,
 cached Nominatim/Transitous estimates; verify the match and departure time.
 Do not infer resident characteristics from location.
 
