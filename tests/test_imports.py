@@ -12,6 +12,23 @@ FIXTURES = ROOT / 'tests' / 'fixtures'
 
 
 class ImportTests(OfflineTest):
+    def test_detail_main_is_independent_of_recommendations_and_fragment_links(self):
+        url = 'https://www.immowelt.de/expose/fictional-main'
+        for suffix in ('', '<a href="#contact">Contact</a>',
+                       '<section class="recommendations"><article><h2>Other flat</h2>'
+                       '<a href="/expose/fictional-other">View</a><p>1500 € Warmmiete; 90 m²; 4 Zimmer</p></article></section>'):
+            with self.subTest(suffix=suffix):
+                text = '<main><h1>Main fictional flat</h1><p>Warmmiete: 900 €; 50 m²; 2 Zimmer</p>' + suffix + '</main>'
+                rows = {row.source_id: row for row in parse_html(text, url)}
+                self.assertIn('fictional-main', rows)
+                main = rows['fictional-main']
+                self.assertEqual((main.title, main.warm_eur, main.area_m2, main.rooms), ('Main fictional flat', 900, 50, 2))
+                if 'fictional-other' in suffix:
+                    other = rows['fictional-other']
+                    self.assertEqual((other.warm_eur, other.area_m2, other.rooms), (1500, 90, 4))
+                else:
+                    self.assertEqual(len(rows), 1)
+
     def test_rent_labels_stay_on_their_line_and_prefer_amount_before_label(self):
         url = 'https://www.immowelt.de/expose/fictional-rent'
         for text in ('700 € Kaltmiete\n900 € Warmmiete', '700 € Kaltmiete\r\n900 € Warmmiete',

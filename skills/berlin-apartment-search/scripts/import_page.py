@@ -102,10 +102,22 @@ def quantity(value):
     return value.get('value') if isinstance(value, dict) else value
 
 
+def anchor_link(node, base_url):
+    href = node.attrs.get('href', '').strip()
+    return urljoin(base_url, href) if href and not href.startswith('#') else ''
+
+
+def visible_text(node, excluded):
+    if id(node) in excluded or node.tag in ('script', 'style', 'svg'):
+        return ''
+    return ' '.join(part for part in (child if isinstance(child, str) else visible_text(child, excluded)
+                                     for child in node.children) if part.strip()).strip()
+
+
 def parse_html(text, base_url=''):
     if re.search(r'<title>[^<]*(?:captcha|access denied|just a moment|robot|zugriff verweigert)', text, re.I):
         return []
-    if re.search(r'verify you are human|ich bin kein roboter|unusual traffic|cf-chl-|captcha-delivery\.com', text, re.I):
+    if re.search(r'verify you are human|ich bin kein roboter|unusual traffic|cf-chl-|captcha-delivery\.com|captcha\s+(?:required|erforderlich)', text, re.I):
         return []
     root, rows = Document(text).root, []
     structured = []
@@ -141,31 +153,42 @@ def parse_html(text, base_url=''):
             row.asking_eur = offer.get('price')
         row.posted_at = item.get('datePosted') or item.get('datePublished') or ''
         rows.append(normalize(row))
+    structured_count, main_identity, excluded = len(rows), identity(base_url), set()
     for node in root.walk():
         card = node.tag in ('article', 'li', 'tr') or (node.tag == 'div' and re.search(
             r'card|listing|expose|offer', node.attrs.get('class', ''), re.I))
-        if not card:
+        related = node.tag == 'aside' or re.search(r'recommend|related|similar|suggest|empfehl',
+                                                  node.attrs.get('class', '') + ' ' + node.attrs.get('id', ''), re.I)
+        if not card and not related:
             continue
         links = {}
         for child in node.walk():
             if child.tag == 'a':
-                link = urljoin(base_url, child.attrs.get('href', ''))
+                link = anchor_link(child, base_url)
                 found = identity(link)
                 if found:
                     links[found[:2]] = (link, child.text())
-        if len(links) == 1:
+        has_heading = any(child.tag == 'h1' for child in node.walk())
+        if main_identity and links and main_identity[:2] not in links and not has_heading:
+            excluded.add(id(node))
+        if card and len(links) == 1 and not (main_identity and has_heading and main_identity[:2] not in links):
             link, title = next(iter(links.values()))
             heading = next((child.text() for child in node.walk() if child.tag in ('h1', 'h2', 'h3')), '')
             rows.append(from_text(node.text(), link, heading or title))
     for node in root.walk():
         if node.tag == 'a':
-            row = from_text(node.text(), urljoin(base_url, node.attrs.get('href', '')), node.text())
+            row = from_text(node.text(), anchor_link(node, base_url), node.text())
             if row:
                 rows.append(row)
-    if not rows and identity(base_url):
-        heading = next((node.text() for node in root.walk() if node.tag == 'h1'), '')
-        if heading and not re.search(r'captcha|access denied|verify you are human|kein roboter', heading, re.I):
-            rows.append(from_text(root.text(), base_url, heading))
+                if main_identity and (row.source, row.source_id) != main_identity[:2]:
+                    excluded.add(id(node))
+    if main_identity:
+        main = next((node for node in root.walk() if node.tag == 'main'), root)
+        heading = next((node.text() for node in main.walk() if node.tag == 'h1'), '')
+        heading = heading or next((node.text() for node in root.walk() if node.tag == 'title'), 'Imported offer')
+        context = visible_text(main, excluded)
+        if context and not re.search(r'captcha|access denied|verify you are human|kein roboter', heading, re.I):
+            rows.insert(structured_count, from_text(context, base_url, heading))
     return merge(rows)
 
 
