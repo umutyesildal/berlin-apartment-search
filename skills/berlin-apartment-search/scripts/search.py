@@ -29,10 +29,6 @@ def collect(selected, guard, max_warm=None, min_rooms=None, exclude=(), profile=
             commute_client=None, commute_to=None, commute_mode='transit'):
     weights = weights_from(weights)
     profile = dict(profile or {})
-    if max_warm is not None:
-        profile['max_warm_eur'] = max_warm
-    if min_rooms is not None:
-        profile['min_rooms'] = min_rooms
     listings, statuses = [], {}
     for name in selected:
         try:
