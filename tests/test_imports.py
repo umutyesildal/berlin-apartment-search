@@ -12,6 +12,19 @@ FIXTURES = ROOT / 'tests' / 'fixtures'
 
 
 class ImportTests(OfflineTest):
+    def test_unrecognized_recommendation_wrapper_does_not_supply_main_facts(self):
+        url = 'https://www.immowelt.de/expose/fictional-main'
+        for tag in ('div', 'section', 'p'):
+            html = ('<main><h1>Main flat</h1><p>50 m²</p><' + tag + ' class="widget-xyz">'
+                    '<span><a href="/expose/fictional-other">Other flat</a></span>'
+                    '<span>Warmmiete: 1500 €; 4 Zimmer; 90 m²</span></' + tag + '></main>')
+            with self.subTest(tag=tag):
+                rows = {row.source_id: row for row in parse_html(html, url)}
+                self.assertIsNone(rows['fictional-main'].warm_eur)
+                self.assertIsNone(rows['fictional-main'].rooms)
+                self.assertEqual(rows['fictional-main'].area_m2, 50)
+                self.assertEqual((rows['fictional-other'].warm_eur, rows['fictional-other'].rooms), (1500, 4))
+
     def test_colon_only_rent_label_accepts_only_its_immediate_unlabelled_amount_line(self):
         url = 'https://www.immowelt.de/expose/fictional-lines'
         for text, expected in [('Warmmiete:\n900 €', (None, 900)),

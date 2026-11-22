@@ -170,12 +170,13 @@ def parse_html(text, base_url=''):
                 setattr(row, field, value)
         rows.append(row)
     structured_count, main_identity, excluded = len(rows), identity(base_url), set()
+    parents = {id(child): node for node in root.walk() for child in node.children if not isinstance(child, str)}
     for node in root.walk():
+        if main_identity:
+            break
         card = node.tag in ('article', 'li', 'tr') or (node.tag == 'div' and re.search(
             r'card|listing|expose|offer', node.attrs.get('class', ''), re.I))
-        related = node.tag == 'aside' or re.search(r'recommend|related|similar|suggest|empfehl',
-                                                  node.attrs.get('class', '') + ' ' + node.attrs.get('id', ''), re.I)
-        if not card and not related:
+        if not card:
             continue
         links = {}
         for child in node.walk():
@@ -184,20 +185,35 @@ def parse_html(text, base_url=''):
                 found = identity(link)
                 if found:
                     links[found[:2]] = (link, child.text())
-        has_heading = any(child.tag == 'h1' for child in node.walk())
-        if main_identity and links and main_identity[:2] not in links and not has_heading:
-            excluded.add(id(node))
-        if card and len(links) == 1 and not (main_identity and has_heading and main_identity[:2] not in links):
+        if len(links) == 1:
             link, title = next(iter(links.values()))
             heading = next((child.text() for child in node.walk() if child.tag in ('h1', 'h2', 'h3')), '')
             rows.append(from_text(node.text(), link, heading or title))
     for node in root.walk():
         if node.tag == 'a':
-            row = from_text(node.text(), anchor_link(node, base_url), node.text())
+            link = anchor_link(node, base_url)
+            found = identity(link)
+            context = node
+            if main_identity and found:
+                if found[:2] == main_identity[:2]:
+                    continue
+                parent = parents.get(id(node))
+                blocks = ('div', 'section', 'article', 'li', 'tr', 'td', 'p', 'aside', 'figure', 'main', 'body', 'html')
+                while parent is not None and parent.tag not in blocks:
+                    parent = parents.get(id(parent))
+                if parent is not None and parent.tag not in ('main', 'body', 'html') and not any(
+                        child.tag == 'h1' for child in parent.walk()):
+                    excluded.add(id(parent))
+                    targets = {target[:2] for child in parent.walk() if child.tag == 'a'
+                               for target in [identity(anchor_link(child, base_url))] if target}
+                    if targets == {found[:2]}:
+                        context = parent
+                else:
+                    excluded.add(id(node))
+            heading = next((child.text() for child in context.walk() if child.tag in ('h2', 'h3')), node.text())
+            row = from_text(context.text(), link, heading)
             if row:
                 rows.append(row)
-                if main_identity and (row.source, row.source_id) != main_identity[:2]:
-                    excluded.add(id(node))
     if main_identity:
         main = next((node for node in root.walk() if node.tag == 'main'), root)
         heading = next((node.text() for node in main.walk() if node.tag == 'h1'), '')
