@@ -1,0 +1,167 @@
+"""One search, durable seen-state claims, new-only local report, then optional delivery."""
+
+import argparse
+import json
+import sqlite3
+from dataclasses import fields
+from datetime import datetime, timezone
+from pathlib import Path
+from private_paths import private_directory, private_file
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+from uuid import uuid4
+from classify import PATTERNS
+from dedupe import possible_match
+from fit_score import positive as positive_preference, weights_from
+from guard import Guard
+from models import Listing
+from notify import destination, send
+from report import render as render_shortlist
+from search import SOURCES, collect, enrich, positive, write_report
+
+
+def aliases(member):
+    result = ['id:' + member['id']]
+    parsed = urlsplit(member.get('url') or '')
+    if parsed.scheme == 'https' and parsed.hostname:
+        query = [(key, value) for key, value in parse_qsl(parsed.query, keep_blank_values=True)
+                 if not key.casefold().startswith('utm_') and key.casefold() not in ('gclid', 'fbclid')]
+        result.append('url:' + urlunsplit((parsed.scheme, parsed.netloc.casefold(), parsed.path, urlencode(sorted(query)), '')))
+    return result
+
+
+def as_listing(member):
+    return Listing(**{field.name: member[field.name] for field in fields(Listing) if field.name in member})
+
+
+def claim_new(report, path, notification=False, dry_run=False, now=None, prepare=None):
+    path = Path(path)
+    private_directory(path.parent)
+    at = now or datetime.now(timezone.utc).isoformat()
+    with private_file(path, 'a', encoding='utf-8'):
+        pass
+    connection = sqlite3.connect(str(path), timeout=30)
+    new_groups, claimed = [], []
+    try:
+        with connection as db:
+            db.execute('CREATE TABLE IF NOT EXISTS seen (id TEXT PRIMARY KEY, first_seen TEXT NOT NULL, notified_at TEXT, payload TEXT NOT NULL, delivery TEXT NOT NULL)')
+            db.execute('CREATE TABLE IF NOT EXISTS aliases (alias TEXT PRIMARY KEY, id TEXT NOT NULL)')
+            db.execute('BEGIN IMMEDIATE')
+            known = [(row[0], json.loads(row[1])) for row in db.execute('SELECT id,payload FROM seen')]
+            for cluster in report['groups']:
+                members = cluster['members']
+                previous = None
+                for member in members:
+                    for alias in aliases(member):
+                        match = db.execute('SELECT id FROM aliases WHERE alias=?', (alias,)).fetchone()
+                        if match:
+                            previous = match[0]
+                            break
+                    if previous:
+                        break
+                    previous = next((identifier for identifier, saved in known
+                                     if possible_match(as_listing(member), as_listing(saved))), None)
+                    if previous:
+                        break
+                identifier = previous or members[0]['id']
+                if previous is None:
+                    notified_at = at if notification and not dry_run else None
+                    delivery = 'attempted' if notified_at else 'dry_run' if notification else 'disabled'
+                    for member in members:
+                        member.update(first_seen=at, notified_at=notified_at)
+                    db.execute('INSERT INTO seen VALUES (?,?,?,?,?)',
+                               (identifier, at, notified_at, json.dumps(members[0]), delivery))
+                    known.append((identifier, members[0]))
+                    claimed.append(identifier)
+                    new_groups.append(cluster)
+                for member in members:
+                    for alias in aliases(member):
+                        db.execute('INSERT OR IGNORE INTO aliases VALUES (?,?)', (alias, identifier))
+            result = dict(report, groups=new_groups, listing_count=sum(len(group['members']) for group in new_groups),
+                          new_count=len(new_groups), seen_suppressed=report['listing_count'] - sum(len(group['members']) for group in new_groups))
+            if prepare is not None:
+                prepare(result, claimed)
+    finally:
+        connection.close()
+    return result, claimed
+
+
+def validate_profile(profile):
+    profile = {} if profile is None else profile
+    if not isinstance(profile, dict):
+        raise ValueError('profile must be an object')
+    for key in ('max_warm_eur', 'min_rooms', 'min_area_m2', 'value_eur_m2', 'max_commute_minutes'):
+        if profile.get(key) is not None and positive_preference(profile[key]) is None:
+            raise ValueError('profile preference must be positive and finite: ' + key)
+    districts = profile.get('districts')
+    if districts is not None and (not isinstance(districts, list) or
+                                  any(not isinstance(item, str) or not item.strip() for item in districts)):
+        raise ValueError('districts must be a list of nonempty strings')
+    return dict(profile)
+
+
+def run(selected, guard, directory='flat-search', profile=None, weights=None, max_warm=None, min_rooms=None,
+        exclude=(), provider=None, dry_run=False, confirm_self=False):
+    profile, weights = validate_profile(profile), weights_from(weights)
+    if provider and not dry_run:
+        destination(provider, confirm_self)
+    report = collect(selected, guard, max_warm, min_rooms, exclude, profile, weights, assess=False)
+    path = Path(directory) / 'watch.sqlite'
+
+    def prepare(report, claimed):
+        enrich(report, profile, weights)
+        report['notification'] = {'status': 'disabled' if provider is None else 'no_new'}
+        if not claimed:
+            return
+        if provider:
+            report['notification'] = {'status': 'dry_run' if dry_run else 'attempted'}
+        stamp = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ') + '-' + uuid4().hex[:12]
+        stem = Path(directory) / 'watch/runs' / stamp
+        private_directory(stem.parent)
+        report['run_files'] = {'markdown': str(stem.with_suffix('.md')), 'html': str(stem.with_suffix('.html'))}
+        markdown, page = render_shortlist(report)
+        for extension, content in (('.md', markdown), ('.html', page)):
+            with private_file(stem.with_suffix(extension), 'x', encoding='utf-8') as stream:
+                stream.write(content)
+        write_report(report, Path(directory) / 'watch')
+
+    report, claimed = claim_new(report, path, bool(provider), dry_run, prepare=prepare)
+    if provider and claimed:
+        receipt = send(guard, provider, 'New apartment listings: %d. Review your local %s. No safety guarantee.'
+                       % (len(claimed), report['run_files']['html']), dry_run, confirm_self)
+        report['notification'] = receipt
+        with sqlite3.connect(str(path)) as db:
+            db.executemany('UPDATE seen SET delivery=? WHERE id=?', [(receipt['status'], identifier) for identifier in claimed])
+    return report
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--source', choices=tuple(SOURCES), action='append')
+    parser.add_argument('--profile', type=Path)
+    parser.add_argument('--weights', default='{}')
+    parser.add_argument('--max-warm', type=positive)
+    parser.add_argument('--min-rooms', type=positive)
+    parser.add_argument('--exclude', default='')
+    parser.add_argument('--notify', choices=('ntfy', 'telegram'))
+    parser.add_argument('--dry-run', action='store_true', help='Only notification delivery is dry-run; seen state is persisted')
+    parser.add_argument('--confirm-self', action='store_true')
+    args = parser.parse_args(argv)
+    try:
+        profile = json.loads(args.profile.read_text(encoding='utf-8')) if args.profile else {}
+        weights = weights_from(json.loads(args.weights))
+        exclude = set(filter(None, args.exclude.split(',')))
+        if not isinstance(profile, dict) or exclude.difference(PATTERNS):
+            raise ValueError('profile or exclusion tags invalid')
+        report = run(list(dict.fromkeys(args.source or SOURCES)), Guard(), profile=profile, weights=weights,
+                     max_warm=args.max_warm, min_rooms=args.min_rooms, exclude=exclude, provider=args.notify,
+                     dry_run=args.dry_run, confirm_self=args.confirm_self)
+        print(json.dumps({'sources': report['sources'], 'new_count': report['new_count'],
+                          'listing_count': report['listing_count'], 'seen_suppressed': report['seen_suppressed'],
+                          'notification': report['notification'], 'output': report.get('run_files')}, ensure_ascii=False))
+        return 0 if all(source['status'] == 'ok' for source in report['sources'].values()) and report['notification']['status'] != 'failed' else 1
+    except (OSError, ValueError, TypeError, KeyError, sqlite3.Error):
+        parser.error('Watch state/configuration/output error; no automatic retry. Private values omitted.')
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())

@@ -9,6 +9,7 @@ import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+from private_paths import private_directory, private_file
 from classify import PATTERNS, classify
 from dedupe import group
 from commute import Commute, coordinates
@@ -19,14 +20,14 @@ from models import normalize
 from rent_check import assess as rent_assess
 from scam_check import assess as scam_assess
 from report import write as write_shortlist
-from sources import immoscout, inberlinwohnen, kleinanzeigen, wggesucht, wunderflats
+from sources import deutschewohnen, immoscout, inberlinwohnen, kleinanzeigen, wggesucht, wunderflats
 
 
-SOURCES = {adapter.NAME: adapter for adapter in (inberlinwohnen, kleinanzeigen, immoscout, wggesucht, wunderflats)}
+SOURCES = {adapter.NAME: adapter for adapter in (inberlinwohnen, kleinanzeigen, immoscout, wggesucht, wunderflats, deutschewohnen)}
 
 
 def collect(selected, guard, max_warm=None, min_rooms=None, exclude=(), profile=None, weights=None,
-            commute_client=None, commute_to=None, commute_mode='transit'):
+            commute_client=None, commute_to=None, commute_mode='transit', assess=True):
     weights = weights_from(weights)
     profile = dict(profile or {})
     listings, statuses = [], {}
@@ -62,7 +63,14 @@ def collect(selected, guard, max_warm=None, min_rooms=None, exclude=(), profile=
             statuses[name] = {'status': 'error', 'returned': None, 'kept': 0,
                               'blocked': None, 'reason': str(error)}
     clusters = group(listings)
-    for cluster in clusters:
+    report = {'generated_at': datetime.now(timezone.utc).isoformat(),
+              'sources': statuses, 'listing_count': len(listings), 'groups': clusters}
+    return enrich(report, profile, weights, commute_client, commute_to, commute_mode) if assess else report
+
+
+def enrich(report, profile=None, weights=None, commute_client=None, commute_to=None, commute_mode='transit'):
+    profile = profile or {}
+    for cluster in report['groups']:
         for member in cluster['members']:
             text = member['title'] + '\n' + member['text']
             member['integrity'] = check(text)
@@ -73,9 +81,13 @@ def collect(selected, guard, max_warm=None, min_rooms=None, exclude=(), profile=
             if commute_client and commute_to and member['latitude'] is not None and member['longitude'] is not None:
                 member['commute'] = commute_client.route([member['latitude'], member['longitude']], commute_to, commute_mode,
                                                         max_minutes=profile.get('max_commute_minutes'))
-            member['fit'] = score(member, profile, weights)
-    return {'generated_at': datetime.now(timezone.utc).isoformat(),
-            'sources': statuses, 'listing_count': len(listings), 'groups': clusters}
+            score_input = member
+            if not member['posted_at'] and member.get('first_seen'):
+                score_input = dict(member, posted_at=member['first_seen'])
+            member['fit'] = score(score_input, profile, weights)
+            if score_input is not member:
+                member['fit']['factors']['freshness']['reason'] += ' Portal date missing; uses local first_seen.'
+    return report
 
 
 def plain(value):
@@ -108,11 +120,12 @@ def markdown(report):
 
 def write_report(report, directory):
     directory = Path(directory)
-    directory.mkdir(parents=True, exist_ok=True, mode=0o700)
+    private_directory(directory)
     for name, content in (('results.json', json.dumps(report, ensure_ascii=False, indent=2)),
                           ('results.md', markdown(report))):
         temporary = directory / (name + '.' + str(os.getpid()) + '.tmp')
-        temporary.write_text(content, encoding='utf-8')
+        with private_file(temporary, encoding='utf-8') as stream:
+            stream.write(content)
         temporary.replace(directory / name)
     write_shortlist(report, directory)
 

@@ -8,6 +8,7 @@ import time
 from contextlib import contextmanager
 from http.client import HTTPException
 from pathlib import Path
+from private_paths import private_directory, private_file
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
 from urllib.request import HTTPRedirectHandler, ProxyHandler, Request, build_opener
@@ -37,7 +38,7 @@ class Guard:
 
     def __init__(self, directory='flat-search', clock=time.time, sleep=time.sleep, jitter=None):
         directory = Path(directory)
-        directory.mkdir(parents=True, exist_ok=True, mode=0o700)
+        private_directory(directory)
         self.path = directory / 'guard.sqlite'
         self.clock, self.sleep = clock, sleep
         self.jitter = jitter or (lambda: random.uniform(3, 7))
@@ -47,6 +48,8 @@ class Guard:
 
     @contextmanager
     def connect(self):
+        with private_file(self.path, 'a', encoding='utf-8'):
+            pass
         connection = sqlite3.connect(str(self.path), timeout=30)
         try:
             with connection:
@@ -92,11 +95,19 @@ class Guard:
                  'kleinanzeigen': 'www.kleinanzeigen.de',
                  'immoscout': 'api.mobile.immobilienscout24.de',
                  'wggesucht': 'www.wg-gesucht.de', 'wunderflats': 'wunderflats.com',
+                 'deutschewohnen': 'www.deutsche-wohnen.com',
+                 'ntfy': 'ntfy.sh', 'telegram': 'api.telegram.org',
                  'nominatim': 'nominatim.openstreetmap.org', 'transitous': 'api.transitous.org'}
         if parsed.scheme != 'https' or parsed.hostname != hosts.get(site) or parsed.port not in (None, 443):
             raise SourceError('endpoint not permitted')
+        if parsed.username or parsed.password:
+            raise SourceError('URL credentials not permitted')
+        if site in ('ntfy', 'telegram'):
+            path_pattern = r'/[A-Za-z0-9_-]{1,128}' if site == 'ntfy' else r'/bot\d+:[A-Za-z0-9_-]+/sendMessage'
+            if body is None or parsed.query or parsed.fragment or not re.fullmatch(path_pattern, parsed.path):
+                raise SourceError('notification endpoint not permitted')
         self.reserve(site)
-        request_headers = {'User-Agent': 'berlin-apartment-search/0.2.0',
+        request_headers = {'User-Agent': 'berlin-apartment-search/0.3.0',
                            'Accept': 'text/html,application/json', 'Accept-Encoding': 'identity'}
         request_headers.update(headers or {})
         request = Request(url, data=body, headers=request_headers)

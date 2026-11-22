@@ -5,6 +5,7 @@ import html
 import json
 import re
 from pathlib import Path
+from private_paths import private_directory, private_file
 from urllib.parse import quote
 from models import safe_url
 
@@ -28,7 +29,7 @@ def render(report):
         for member in cluster['members']:
             title = member.get('title') or 'Untitled'
             score = (member.get('fit') or {}).get('score', 'unknown')
-            flags = {key: member.get(key, {}) for key in ('scam', 'rent', 'integrity', 'commute', 'fit')}
+            flags = {key: member.get(key, {}) for key in ('scam', 'rent', 'integrity', 'commute', 'fit', 'first_seen', 'notified_at')}
             details = json.dumps(flags, ensure_ascii=False, indent=2)
             duplicate = bool(cluster.get('possible_duplicate'))
             url = link(member.get('url'))
@@ -58,9 +59,10 @@ def render(report):
 def write(report, directory='flat-search'):
     markdown, page = render(report)
     directory = Path(directory)
-    directory.mkdir(parents=True, exist_ok=True, mode=0o700)
+    private_directory(directory)
     for name, content in (('shortlist.md', markdown), ('shortlist.html', page)):
-        (directory / name).write_text(content, encoding='utf-8')
+        with private_file(directory / name, encoding='utf-8') as stream:
+            stream.write(content)
 
 
 def main(argv=None):

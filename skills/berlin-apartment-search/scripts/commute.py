@@ -6,11 +6,12 @@ import json
 import math
 from datetime import datetime, timezone
 from pathlib import Path
+from private_paths import private_directory, private_file
 from urllib.parse import urlencode
 from guard import Blocked, Deferred, Guard, SourceError
 
 
-USER_AGENT = 'berlin-apartment-search/0.2.0 (https://github.com/umutyesildal/berlin-apartment-search)'
+USER_AGENT = 'berlin-apartment-search/0.3.0 (https://github.com/umutyesildal/berlin-apartment-search)'
 
 
 def coordinates(value):
@@ -39,8 +40,9 @@ class Commute:
         if self.offline:
             raise SourceError('offline and no fresh cache')
         data = json.loads(self.guard.fetch(site, url, headers={'User-Agent': USER_AGENT, 'Accept': 'application/json'}))
-        self.directory.mkdir(parents=True, exist_ok=True, mode=0o700)
-        path.write_text(json.dumps({'at': datetime.now(timezone.utc).timestamp(), 'data': data}), encoding='utf-8')
+        private_directory(self.directory)
+        with private_file(path, encoding='utf-8') as stream:
+            stream.write(json.dumps({'at': datetime.now(timezone.utc).timestamp(), 'data': data}))
         return data
 
     def geocode(self, query):

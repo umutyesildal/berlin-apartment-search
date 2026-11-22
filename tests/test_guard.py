@@ -77,7 +77,7 @@ class GuardTests(OfflineTest):
         self.assertIn('totalResults', body)
         opener.open.assert_called_once()
         self.assertEqual(opener.open.call_args.args[0].get_method(), 'POST')
-        self.assertEqual(opener.open.call_args.args[0].get_header('User-agent'), 'berlin-apartment-search/0.2.0')
+        self.assertEqual(opener.open.call_args.args[0].get_header('User-agent'), 'berlin-apartment-search/0.3.0')
         self.assertTrue(any(isinstance(handler, NoRedirect) for handler in build.call_args.args))
 
     def test_http_errors_and_network_failure(self):

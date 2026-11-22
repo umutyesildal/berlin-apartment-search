@@ -1,6 +1,6 @@
 {
   "name": "berlin-apartment-search",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Local-first Berlin apartment search with read-only tools.",
   "author": {"name": "Umut Yesildal", "url": "https://github.com/umutyesildal"},
   "homepage": "https://github.com/umutyesildal/berlin-apartment-search",
