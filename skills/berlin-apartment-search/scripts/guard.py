@@ -8,7 +8,7 @@ import time
 from contextlib import contextmanager
 from http.client import HTTPException
 from pathlib import Path
-from private_paths import private_directory
+from private_paths import private_directory, private_file
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
 from urllib.request import HTTPRedirectHandler, ProxyHandler, Request, build_opener
@@ -48,6 +48,8 @@ class Guard:
 
     @contextmanager
     def connect(self):
+        with private_file(self.path, 'a', encoding='utf-8'):
+            pass
         connection = sqlite3.connect(str(self.path), timeout=30)
         try:
             with connection:

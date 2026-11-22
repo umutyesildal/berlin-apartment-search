@@ -6,7 +6,7 @@ import json
 import math
 from datetime import datetime, timezone
 from pathlib import Path
-from private_paths import private_directory
+from private_paths import private_directory, private_file
 from urllib.parse import urlencode
 from guard import Blocked, Deferred, Guard, SourceError
 
@@ -41,7 +41,8 @@ class Commute:
             raise SourceError('offline and no fresh cache')
         data = json.loads(self.guard.fetch(site, url, headers={'User-Agent': USER_AGENT, 'Accept': 'application/json'}))
         private_directory(self.directory)
-        path.write_text(json.dumps({'at': datetime.now(timezone.utc).timestamp(), 'data': data}), encoding='utf-8')
+        with private_file(path, encoding='utf-8') as stream:
+            stream.write(json.dumps({'at': datetime.now(timezone.utc).timestamp(), 'data': data}))
         return data
 
     def geocode(self, query):

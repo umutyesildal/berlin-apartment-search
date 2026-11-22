@@ -5,7 +5,7 @@ import html
 import json
 import re
 from pathlib import Path
-from private_paths import private_directory
+from private_paths import private_directory, private_file
 from urllib.parse import quote
 from models import safe_url
 
@@ -61,7 +61,8 @@ def write(report, directory='flat-search'):
     directory = Path(directory)
     private_directory(directory)
     for name, content in (('shortlist.md', markdown), ('shortlist.html', page)):
-        (directory / name).write_text(content, encoding='utf-8')
+        with private_file(directory / name, encoding='utf-8') as stream:
+            stream.write(content)
 
 
 def main(argv=None):

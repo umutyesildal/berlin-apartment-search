@@ -10,7 +10,7 @@ from contextlib import closing
 from datetime import datetime, timezone
 from functools import wraps
 from pathlib import Path
-from private_paths import private_directory
+from private_paths import private_directory, private_file
 
 
 FIELDS = ['id', 'date_added', 'last_seen', 'title', 'source', 'url', 'status', 'score', 'verdict', 'notes']
@@ -47,7 +47,8 @@ def write_rows(path, rows):
             encoded[key] = "'" + value if unsafe else value
         writer.writerow(dict(encoded, _encoding='spreadsheet-v1'))
     temporary = path.with_name(path.name + '.' + str(os.getpid()) + '.tmp')
-    temporary.write_text(output.getvalue(), encoding='utf-8')
+    with private_file(temporary, encoding='utf-8') as stream:
+        stream.write(output.getvalue())
     temporary.replace(path)
 
 
@@ -56,7 +57,10 @@ def serialized(operation):
     def locked(path, *args, **kwargs):
         path = Path(path)
         private_directory(path.parent)
-        with closing(sqlite3.connect(str(path) + '.lock.sqlite', timeout=30)) as db:
+        lock_path = str(path) + '.lock.sqlite'
+        with private_file(lock_path, 'a', encoding='utf-8'):
+            pass
+        with closing(sqlite3.connect(lock_path, timeout=30)) as db:
             with db:
                 db.execute('BEGIN IMMEDIATE')
                 return operation(path, *args, **kwargs)
@@ -103,7 +107,7 @@ def update(path, identifier, status=None, note=None, verdict=None):
     write_rows(path, rows)
     event = {'id': identifier, 'at': datetime.now(timezone.utc).isoformat(),
              'status': row['status'], 'note': note, 'verdict': verdict}
-    with (Path(path).parent / 'events.jsonl').open('a', encoding='utf-8') as stream:
+    with private_file(Path(path).parent / 'events.jsonl', 'a', encoding='utf-8') as stream:
         stream.write(json.dumps(event, ensure_ascii=False) + '\n')
     return row
 

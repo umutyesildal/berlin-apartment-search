@@ -6,7 +6,7 @@ import sqlite3
 from dataclasses import fields
 from datetime import datetime, timezone
 from pathlib import Path
-from private_paths import private_directory
+from private_paths import private_directory, private_file
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 from uuid import uuid4
 from classify import PATTERNS
@@ -37,6 +37,8 @@ def claim_new(report, path, notification=False, dry_run=False, now=None, prepare
     path = Path(path)
     private_directory(path.parent)
     at = now or datetime.now(timezone.utc).isoformat()
+    with private_file(path, 'a', encoding='utf-8'):
+        pass
     connection = sqlite3.connect(str(path), timeout=30)
     new_groups, claimed = [], []
     try:
@@ -118,7 +120,7 @@ def run(selected, guard, directory='flat-search', profile=None, weights=None, ma
         report['run_files'] = {'markdown': str(stem.with_suffix('.md')), 'html': str(stem.with_suffix('.html'))}
         markdown, page = render_shortlist(report)
         for extension, content in (('.md', markdown), ('.html', page)):
-            with stem.with_suffix(extension).open('x', encoding='utf-8') as stream:
+            with private_file(stem.with_suffix(extension), 'x', encoding='utf-8') as stream:
                 stream.write(content)
         write_report(report, Path(directory) / 'watch')
 

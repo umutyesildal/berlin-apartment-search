@@ -12,12 +12,70 @@ from guard import Guard
 from import_page import build_report, main as page_main
 from report import write as write_shortlist
 from search import write_report
-from tracker import upsert
-from watch import claim_new
-from private_paths import private_directory
+from tracker import upsert, update
+from watch import claim_new, run
+from models import Listing
+from private_paths import private_directory, private_file
 
 
 class PrivatePathTests(OfflineTest):
+    def test_private_file_modes_existing_permissions_and_atomic_temporary_files(self):
+        with tempfile.TemporaryDirectory() as directory, working_directory(directory):
+            with private_file('flat-search/private.txt', 'x') as stream:
+                stream.write('fiction')
+            path = Path('flat-search/private.txt')
+            path.chmod(0o644)
+            with private_file(path, 'a') as stream:
+                stream.write('al')
+            self.assertEqual(path.read_text(encoding='utf-8'), 'fictional')
+            self.assertEqual(stat.S_IMODE(path.stat().st_mode), 0o600)
+            with self.assertRaises(FileExistsError):
+                with private_file(path, 'x'):
+                    pass
+            with self.assertRaises(ValueError):
+                with private_file(path, 'r'):
+                    pass
+            replace = os.replace
+            def verify_mode(source, target):
+                self.assertEqual(stat.S_IMODE(Path(source).stat().st_mode), 0o600)
+                return replace(source, target)
+            with patch('os.replace', side_effect=verify_mode):
+                write_report(build_report([], 'fixture'), 'flat-search/report')
+
+    def test_private_files_stay_0600_in_symlinked_shared_directory(self):
+        if os.name == 'nt':
+            self.skipTest('POSIX directory modes and symlinks')
+        report = build_report([], 'fixture')
+        writers = [lambda: draft_main(['--profile', str(SCRIPTS.parent / 'assets/profile.template.json')]),
+                   lambda: write_report(report, 'flat-search/nested'),
+                   lambda: Guard(),
+                   lambda: Commute(Mock(fetch=Mock(return_value='{}')), 'flat-search/cache').cached('fixture', 'fixture', 10),
+                   lambda: upsert('flat-search/tracker.csv', [{'id': 'fiction:1'}]),
+                   lambda: claim_new(report, 'flat-search/watch.sqlite'),
+                   lambda: run(['inberlinwohnen'], Mock())]
+        previous_umask = os.umask(0o022)
+        try:
+            for index, write in enumerate(writers):
+                with self.subTest(writer=index), tempfile.TemporaryDirectory() as directory:
+                    base = Path(directory)
+                    shared, checkout = base / 'shared', base / 'checkout'
+                    shared.mkdir(mode=0o755)
+                    shared.chmod(0o755)
+                    checkout.mkdir()
+                    with working_directory(checkout), patch('sys.stdout', io.StringIO()), patch(
+                            'sources.inberlinwohnen.search', return_value=[Listing('fiction', '1', '', 'Flat')]):
+                        Path('flat-search').symlink_to(shared, target_is_directory=True)
+                        write()
+                        if index == 4:
+                            update('flat-search/tracker.csv', 'fiction:1', note='Fictional note')
+                        self.assertEqual(stat.S_IMODE(shared.stat().st_mode), 0o755)
+                        files = [path for path in shared.rglob('*') if path.is_file()]
+                        self.assertTrue(files)
+                        for path in files:
+                            self.assertEqual(stat.S_IMODE(path.stat().st_mode), 0o600, str(path))
+        finally:
+            os.umask(previous_umask)
+
     def test_outer_flat_search_folder_and_checkout_are_never_chmodded(self):
         if os.name == 'nt':
             self.skipTest('POSIX directory modes')

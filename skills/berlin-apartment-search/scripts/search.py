@@ -9,7 +9,7 @@ import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
-from private_paths import private_directory
+from private_paths import private_directory, private_file
 from classify import PATTERNS, classify
 from dedupe import group
 from commute import Commute, coordinates
@@ -124,7 +124,8 @@ def write_report(report, directory):
     for name, content in (('results.json', json.dumps(report, ensure_ascii=False, indent=2)),
                           ('results.md', markdown(report))):
         temporary = directory / (name + '.' + str(os.getpid()) + '.tmp')
-        temporary.write_text(content, encoding='utf-8')
+        with private_file(temporary, encoding='utf-8') as stream:
+            stream.write(content)
         temporary.replace(directory / name)
     write_shortlist(report, directory)
 
