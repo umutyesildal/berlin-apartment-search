@@ -28,7 +28,7 @@ def render(report):
         for member in cluster['members']:
             title = member.get('title') or 'Untitled'
             score = (member.get('fit') or {}).get('score', 'unknown')
-            flags = {key: member.get(key, {}) for key in ('scam', 'rent', 'integrity', 'commute', 'fit')}
+            flags = {key: member.get(key, {}) for key in ('scam', 'rent', 'integrity', 'commute', 'fit', 'first_seen', 'notified_at')}
             details = json.dumps(flags, ensure_ascii=False, indent=2)
             duplicate = bool(cluster.get('possible_duplicate'))
             url = link(member.get('url'))

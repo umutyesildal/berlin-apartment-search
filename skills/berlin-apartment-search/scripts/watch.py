@@ -6,7 +6,7 @@ import sqlite3
 from dataclasses import fields
 from datetime import datetime, timezone
 from pathlib import Path
-from urllib.parse import urlsplit, urlunsplit
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 from classify import PATTERNS
 from dedupe import possible_match
 from fit_score import weights_from
@@ -20,7 +20,9 @@ def aliases(member):
     result = ['id:' + member['id']]
     parsed = urlsplit(member.get('url') or '')
     if parsed.scheme == 'https' and parsed.hostname:
-        result.append('url:' + urlunsplit((parsed.scheme, parsed.netloc.casefold(), parsed.path, '', '')))
+        query = [(key, value) for key, value in parse_qsl(parsed.query, keep_blank_values=True)
+                 if not key.casefold().startswith('utm_') and key.casefold() not in ('gclid', 'fbclid')]
+        result.append('url:' + urlunsplit((parsed.scheme, parsed.netloc.casefold(), parsed.path, urlencode(sorted(query)), '')))
     return result
 
 
@@ -61,7 +63,7 @@ def claim_new(report, path, notification=False, dry_run=False, now=None):
                     delivery = 'attempted' if notified_at else 'dry_run' if notification else 'disabled'
                     for member in members:
                         member.update(first_seen=at, notified_at=notified_at)
-                    db.execute('INSERT INTO seen VALUES (?,?,?,?,?,?)',
+                    db.execute('INSERT INTO seen VALUES (?,?,?,?,?)',
                                (identifier, at, notified_at, json.dumps(members[0]), delivery))
                     known.append((identifier, members[0]))
                     claimed.append(identifier)
@@ -81,10 +83,6 @@ def run(selected, guard, directory='flat-search', profile=None, weights=None, ma
     if provider and not dry_run:
         destination(provider, confirm_self)
     profile = dict(profile or {})
-    if max_warm is not None:
-        profile['max_warm_eur'] = max_warm
-    if min_rooms is not None:
-        profile['min_rooms'] = min_rooms
     report = collect(selected, guard, max_warm, min_rooms, exclude, profile, weights, assess=False)
     path = Path(directory) / 'watch.sqlite'
     report, claimed = claim_new(report, path, bool(provider), dry_run)
@@ -114,7 +112,7 @@ def main(argv=None):
     parser.add_argument('--confirm-self', action='store_true')
     args = parser.parse_args(argv)
     try:
-        profile = json.loads(args.profile.read_text()) if args.profile else {}
+        profile = json.loads(args.profile.read_text(encoding='utf-8')) if args.profile else {}
         weights = weights_from(json.loads(args.weights))
         exclude = set(filter(None, args.exclude.split(',')))
         if not isinstance(profile, dict) or exclude.difference(PATTERNS):
