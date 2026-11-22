@@ -12,6 +12,21 @@ FIXTURES = ROOT / 'tests' / 'fixtures'
 
 
 class ImportTests(OfflineTest):
+    def test_partial_jsonld_preserves_description_facts_unless_structured_value_is_known(self):
+        base = {'@type': 'Apartment', 'url': 'https://www.immowelt.de/expose/fictional-partial',
+                'name': 'Fictional flat', 'description': '50 m²; 2 Zimmer; 900 EUR; 10115 Berlin'}
+        for partial in ({}, {'floorSize': None, 'numberOfRooms': None, 'offers': {}},
+                        {'floorSize': {'value': ''}, 'numberOfRooms': {'value': ''},
+                         'offers': {'price': None}, 'address': {'postalCode': ''}}):
+            with self.subTest(partial=partial):
+                html = '<script type="application/ld+json">' + json.dumps(dict(base, **partial)) + '</script>'
+                row = parse_html(html)[0]
+                self.assertEqual((row.area_m2, row.rooms, row.asking_eur, row.postcode), (50, 2, 900, '10115'))
+        data = dict(base, floorSize={'value': 60, 'unitCode': 'MTK'}, numberOfRooms=3,
+                    offers={'price': 1000, 'priceCurrency': 'EUR'})
+        row = parse_html('<script type="application/ld+json">' + json.dumps(data) + '</script>')[0]
+        self.assertEqual((row.area_m2, row.rooms, row.asking_eur), (60, 3, 1000))
+
     def test_detail_main_is_independent_of_recommendations_and_fragment_links(self):
         url = 'https://www.immowelt.de/expose/fictional-main'
         for suffix in ('', '<a href="#contact">Contact</a>',

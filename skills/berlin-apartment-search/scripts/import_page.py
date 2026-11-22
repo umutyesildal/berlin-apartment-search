@@ -142,17 +142,21 @@ def parse_html(text, base_url=''):
         if row is None:
             continue
         address = item.get('address')
-        if isinstance(address, dict):
-            row.street, row.postcode = address.get('streetAddress', ''), address.get('postalCode', '')
+        address = address if isinstance(address, dict) else {}
         size = item.get('floorSize')
-        if not isinstance(size, dict) or size.get('unitCode', size.get('unitText', 'MTK')) in ('MTK', 'm2', 'm²'):
-            row.area_m2 = quantity(size)
-        row.rooms = quantity(item.get('numberOfRooms'))
+        if isinstance(size, dict) and size.get('unitCode', size.get('unitText', 'MTK')) not in ('MTK', 'm2', 'm²'):
+            size = None
         offer = item.get('offers')
-        if isinstance(offer, dict) and offer.get('priceCurrency', 'EUR') == 'EUR':
-            row.asking_eur = offer.get('price')
-        row.posted_at = item.get('datePosted') or item.get('datePublished') or ''
-        rows.append(normalize(row))
+        offer = offer if isinstance(offer, dict) and offer.get('priceCurrency', 'EUR') == 'EUR' else {}
+        facts = normalize(Listing(row.source, row.source_id, row.url, row.title,
+                                  street=address.get('streetAddress'), postcode=address.get('postalCode'),
+                                  area_m2=quantity(size), rooms=quantity(item.get('numberOfRooms')),
+                                  asking_eur=offer.get('price'), posted_at=item.get('datePosted') or item.get('datePublished')))
+        for field in ('street', 'postcode', 'area_m2', 'rooms', 'asking_eur', 'posted_at'):
+            value = getattr(facts, field)
+            if value not in ('', None):
+                setattr(row, field, value)
+        rows.append(row)
     structured_count, main_identity, excluded = len(rows), identity(base_url), set()
     for node in root.walk():
         card = node.tag in ('article', 'li', 'tr') or (node.tag == 'div' and re.search(
