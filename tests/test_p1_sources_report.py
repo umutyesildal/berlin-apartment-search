@@ -10,6 +10,19 @@ from sources import wggesucht, wunderflats
 
 
 class NewSourceTests(OfflineTest):
+    def test_wunderflats_metadata_needs_unique_url_or_id_not_title(self):
+        text = fixture('wunderflats.html')
+        second = '<article class="Listing"><a href="/en/furnished-apartment/other/def456"><h2>Fictional furnished apartment</h2></a></article>'
+        text = text.replace('</html>', second + '</html>')
+        text = text.replace('"@type":"Apartment",', '"@type":"Apartment","url":"https://wunderflats.com/en/furnished-apartment/fictional/abc123",')
+        rows = wunderflats.parse(text)
+        self.assertEqual(rows[0].area_m2, 45)
+        self.assertIsNone(rows[1].area_m2)
+        self.assertIsNone(rows[1].rooms)
+        without_identity = wunderflats.parse(fixture('wunderflats.html'))[0]
+        self.assertIsNone(without_identity.area_m2)
+        self.assertIsNone(without_identity.rooms)
+
     def test_normalized_cards_and_guarded_requests(self):
         for adapter in (wggesucht, wunderflats):
             with self.subTest(source=adapter.NAME):
@@ -22,13 +35,14 @@ class NewSourceTests(OfflineTest):
         wg = wggesucht.parse(fixture('wggesucht.html'))[0]
         self.assertEqual((wg.warm_eur, wg.area_m2, wg.source_id), (700, 20, '101'))
         wf = wunderflats.parse(fixture('wunderflats.html'))[0]
-        self.assertEqual((wf.asking_eur, wf.area_m2, wf.rooms), (1250, 45, 2))
+        self.assertEqual((wf.asking_eur, wf.area_m2, wf.rooms), (1250, None, None))
         self.assertIsNone(wf.warm_eur)
         self.assertNotIn('tracking=', wf.url)
 
     def test_duplicate_metadata_names_are_not_assigned_to_wrong_flat(self):
         text = fixture('wunderflats.html').replace('},' + '{"@type":"AggregateOffer"',
             '},{"@type":"Apartment","name":"Fictional furnished apartment","floorSize":200},' + '{"@type":"AggregateOffer"')
+        text = text.replace('"@type":"Apartment",', '"@type":"Apartment","identifier":"abc123",')
         row = wunderflats.parse(text)[0]
         self.assertIsNone(row.area_m2)
         self.assertIsNone(row.rooms)

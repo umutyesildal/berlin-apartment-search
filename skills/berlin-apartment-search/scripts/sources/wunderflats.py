@@ -34,7 +34,20 @@ def parse(text):
             except ValueError as error:
                 raise SourceError('invalid Wunderflats JSON-LD') from error
             for apartment in apartments(data):
-                metadata.setdefault(str(apartment.get('name') or ''), []).append(apartment)
+                identifiers = set()
+                for key in ('url', '@id'):
+                    value = apartment.get(key)
+                    if isinstance(value, str):
+                        parsed = urlsplit(urljoin(URL, value))
+                        match = re.fullmatch(r'/en/furnished-apartment/[^/]+/([^/]+)/?', parsed.path)
+                        if parsed.hostname == 'wunderflats.com' and match:
+                            identifiers.add(match.group(1))
+                value = apartment.get('identifier')
+                value = value.get('value') if isinstance(value, dict) else value
+                if isinstance(value, str) and re.fullmatch(r'[A-Za-z0-9_-]+', value):
+                    identifiers.add(value)
+                for identifier in identifiers:
+                    metadata.setdefault(identifier, []).append(apartment)
     cards = [node for node in root.walk() if node.tag == 'article' and 'Listing' in node.attrs.get('class', '').split()]
     output, seen = [], set()
     for card in cards:
@@ -52,7 +65,7 @@ def parse(text):
         title = next((node.text() for node in nodes if node.tag in ('h2', 'h3')), '') or link.attrs.get('title', '')
         if not title:
             raise SourceError('Wunderflats card missing title')
-        candidates = metadata.get(title, [])
+        candidates = metadata.get(identifier, [])
         data = candidates[0] if len(candidates) == 1 else {}
         def field(token):
             return next((node.text() for node in nodes if token in node.attrs.get('class', '').split()), '')
