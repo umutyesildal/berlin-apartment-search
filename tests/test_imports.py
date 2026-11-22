@@ -12,6 +12,17 @@ FIXTURES = ROOT / 'tests' / 'fixtures'
 
 
 class ImportTests(OfflineTest):
+    def test_html_alert_keeps_supported_links_without_facts_but_saved_shell_does_not(self):
+        html = ('<p><a href="https://www.immowelt.de/expose/fictional-alert">View offer</a></p>'
+                '<p><a href="https://www.immobilienscout24.de/expose/123456">Other offer</a></p>'
+                '<a href="https://www.immowelt.de/privacy">Privacy</a>')
+        message = ('MIME-Version: 1.0\nContent-Type: text/html; charset=utf-8\n\n' + html).encode('utf-8')
+        rows = parse_email(message)
+        self.assertEqual({row.source for row in rows}, {'immowelt', 'immoscout'})
+        self.assertTrue(all(row.area_m2 is None and row.rooms is None and row.asking_eur is None for row in rows))
+        self.assertEqual(parse_html(html), [])
+        self.assertEqual(parse_email(b'Content-Type: text/html\n\n<p>No offers</p>'), [])
+
     def test_canonical_page_identity_keeps_details_with_next_listing_navigation(self):
         primary = 'https://www.immowelt.de/expose/fictional-main'
         for metadata, saved_url in [('', primary), ('<link rel="canonical" href="' + primary + '">', ''),

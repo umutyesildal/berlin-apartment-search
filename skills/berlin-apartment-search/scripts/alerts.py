@@ -31,7 +31,7 @@ def parse(data):
             text = payload.decode(charset, errors='replace')
         except LookupError:
             text = payload.decode('utf-8', errors='replace')
-        rows.extend(parse_html(text) if part.get_content_type() == 'text/html' else parse_text(text))
+        rows.extend(parse_html(text, require_facts=False) if part.get_content_type() == 'text/html' else parse_text(text))
     return merge(rows)
 
 

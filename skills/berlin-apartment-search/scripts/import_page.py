@@ -127,7 +127,7 @@ def visible_text(node, excluded):
                                      for child in node.children) if part.strip()).strip()
 
 
-def parse_html(text, base_url=''):
+def parse_html(text, base_url='', require_facts=True):
     if re.search(r'<title>[^<]*(?:captcha|access denied|just a moment|robot|zugriff verweigert)', text, re.I):
         return []
     if re.search(r'verify you are human|ich bin kein roboter|unusual traffic|cf-chl-|captcha-delivery\.com|captcha\s+(?:required|erforderlich)', text, re.I):
@@ -240,7 +240,8 @@ def parse_html(text, base_url=''):
         context = visible_text(main, excluded)
         if context and not re.search(r'captcha|access denied|verify you are human|kein roboter', heading, re.I):
             rows.insert(structured_count, from_text(context, base_url, heading))
-    return [row for row in merge(rows) if any(getattr(row, field) not in ('', None) for field in
+    rows = merge(rows)
+    return [row for row in rows if not require_facts or any(getattr(row, field) not in ('', None) for field in
             ('cold_eur', 'warm_eur', 'asking_eur', 'costs_eur', 'deposit_eur', 'area_m2', 'rooms', 'street', 'postcode'))]
 
 
