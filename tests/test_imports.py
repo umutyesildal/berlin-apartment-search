@@ -13,6 +13,18 @@ FIXTURES = ROOT / 'tests' / 'fixtures'
 
 
 class ImportTests(OfflineTest):
+    def test_source_whitespace_does_not_change_table_rents(self):
+        url = 'https://www.immowelt.de/expose/fictional-whitespace'
+        for name in ('saved_rent_table.html', 'saved_rent_table_amount_first.html', 'saved_rent_dl.html'):
+            compact = fixture(name).replace('\n', '')
+            formatted = compact.replace('><', '>\n  <')
+            formatted = formatted.replace('Kaltmiete', '\n Kaltmiete\n ').replace('Warmmiete', '\n Warmmiete\n ')
+            formatted = formatted.replace('700 €', '700\n €').replace('900 €', '900\t €')
+            with self.subTest(fixture=name):
+                for html in (compact, formatted):
+                    row = parse_html(html, url)[0]
+                    self.assertEqual((row.cold_eur, row.warm_eur), (700, 900))
+
     def test_rent_amounts_are_claimed_once_in_label_order(self):
         url = 'https://www.immowelt.de/expose/fictional-pairs'
         for text, expected in [

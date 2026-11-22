@@ -141,7 +141,8 @@ def visible_text(node, excluded):
         return ''
     if node.tag == 'br':
         return '\n'
-    parts = [child if isinstance(child, str) else visible_text(child, excluded) for child in node.children]
+    parts = [re.sub(r'\s+', ' ', child) if isinstance(child, str) else visible_text(child, excluded)
+             for child in node.children]
     text = ' '.join(part for part in parts if part)
     text = re.sub(r'[ \t\r]*\n[ \t\r]*', '\n', text)
     text = re.sub(r'\n+', '\n', text).strip()
