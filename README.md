@@ -143,9 +143,12 @@ shortlists. Durable state lives in `flat-search/watch.sqlite`. `first_seen` is a
 local observation (labelled freshness fallback), not a portal publication date.
 `notified_at` records a precommitted attempt; `delivery` records the outcome.
 At-most-once is deliberate: seen items are never automatically retried after
-failures, crashes, disabled notifications or dry runs. A crash between claiming
-and writing a report can lose that run's report; inspect state, never erase it
-to trigger re-notification. Possible duplicates can be different similar units.
+delivery failures, disabled notifications or dry runs. Profile validation precedes
+search; claims commit only after enrichment and report writing succeed. Preparation
+failures roll back seen state. A crash after commit can lose a notification, but
+its report is already written; never erase state to trigger re-notification.
+Timestamped shortlists in `watch/runs/` remain available, and zero-new runs do not
+overwrite latest. Possible duplicates can be different similar units.
 
 Notifications default off; dry-run sends nothing and needs no credentials but
 **does persist seen state**. For real delivery choose `--notify ntfy|telegram`

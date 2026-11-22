@@ -88,8 +88,11 @@ Review possible duplicate matches: heuristics can suppress a different similar u
 `first_seen` is a local observation, not the publication date. It is used as a
 clearly labelled freshness fallback only when `posted_at` is absent. `notified_at`
 records the precommitted delivery-attempt time, not proof of receipt; `delivery`
-stores the outcome. Claims precede sending so failures/crashes are never retried
-automatically. Even disabled/dry-run delivery consumes seen state; do not delete
+stores the outcome. Profiles are validated before search; claims commit only after
+enrichment and report writing succeed, rolling back on preparation failures.
+Claims precede sending so delivery failures/crashes are never retried
+automatically. Each new run has timestamped shortlists in `watch/runs/`; empty
+runs leave latest intact and notifications name their own run. Even disabled/dry-run delivery consumes seen state; do not delete
 it to retry a notification. Review the local report when delivery fails.
 
 Notifications are off by default. `--notify ntfy|telegram` enables a provider;

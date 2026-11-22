@@ -59,6 +59,26 @@ class NotifyTests(OfflineTest):
 
 
 class WatchTests(OfflineTest):
+    def test_invalid_profile_rejected_before_any_source_request(self):
+        for profile in ({'districts': 23}, {'districts': 'Mitte'}, {'max_warm_eur': -1}, []):
+            with self.subTest(profile=profile), tempfile.TemporaryDirectory() as directory:
+                with patch('sources.inberlinwohnen.search', return_value=[Listing('fiction', '1', '', 'Flat', district='Mitte')]) as adapter:
+                    with self.assertRaises(ValueError):
+                        run(['inberlinwohnen'], Mock(), directory, profile=profile)
+                    adapter.assert_not_called()
+
+    def test_failed_enrichment_or_report_rolls_back_seen_claims(self):
+        for target, error in (('watch.enrich', ValueError('scoring fixture')), ('watch.write_report', OSError('disk fixture'))):
+            with self.subTest(target=target), tempfile.TemporaryDirectory() as directory:
+                with patch('sources.inberlinwohnen.search', return_value=[Listing('fiction', '1', '', 'Flat')]):
+                    with patch(target, side_effect=error), patch('watch.send') as notify:
+                        with self.assertRaises(type(error)):
+                            run(['inberlinwohnen'], Mock(), directory, provider='ntfy', dry_run=True)
+                        notify.assert_not_called()
+                    result = run(['inberlinwohnen'], Mock(), directory, provider='ntfy', dry_run=True)
+                    self.assertEqual(result['new_count'], 1)
+                    self.assertTrue(Path(result['run_files']['html']).is_file())
+
     def test_empty_run_preserves_latest_and_notification_targets_own_run(self):
         with tempfile.TemporaryDirectory() as directory:
             rows = [Listing('fiction', '1', '', 'First fictional flat')]

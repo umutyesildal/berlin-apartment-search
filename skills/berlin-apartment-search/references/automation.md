@@ -24,11 +24,12 @@ shortlist. Notifications name their own run's HTML file. The latest shortlist
 and results under `watch/` update only for new listings; a zero-new run leaves
 them intact and reports its current source statuses on stdout.
 
-Seen claims are SQLite-serialized across processes and precede report writing
-and delivery. `first_seen` is local observation time; `notified_at` is an attempt
+Profiles are validated before search. Seen claims are SQLite-serialized across
+processes and commit only after enrichment and report writing succeed; preparation
+failures roll back the claims. Delivery happens after commit. `first_seen` is local observation time; `notified_at` is an attempt
 claim, not a service delivery guarantee. `delivery` records disabled/dry_run/
 attempted/sent/failed. A crash or send failure is deliberately not retried:
-at-most-once can lose a notification/report rather than send duplicates.
+at-most-once can lose a notification after commit, but its report is already written.
 Dry-run also consumes seen state. Inspect private local reports/state when a
 run fails; no automatic replay. Possible cross-portal duplicates can be distinct
 units, so review heuristic suppression manually.

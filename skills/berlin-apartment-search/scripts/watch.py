@@ -11,7 +11,7 @@ from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 from uuid import uuid4
 from classify import PATTERNS
 from dedupe import possible_match
-from fit_score import weights_from
+from fit_score import positive as positive_preference, weights_from
 from guard import Guard
 from models import Listing
 from notify import destination, send
@@ -33,7 +33,7 @@ def as_listing(member):
     return Listing(**{field.name: member[field.name] for field in fields(Listing) if field.name in member})
 
 
-def claim_new(report, path, notification=False, dry_run=False, now=None):
+def claim_new(report, path, notification=False, dry_run=False, now=None, prepare=None):
     path = Path(path)
     private_directory(path.parent)
     at = now or datetime.now(timezone.utc).isoformat()
@@ -74,24 +74,44 @@ def claim_new(report, path, notification=False, dry_run=False, now=None):
                 for member in members:
                     for alias in aliases(member):
                         db.execute('INSERT OR IGNORE INTO aliases VALUES (?,?)', (alias, identifier))
+            result = dict(report, groups=new_groups, listing_count=sum(len(group['members']) for group in new_groups),
+                          new_count=len(new_groups), seen_suppressed=report['listing_count'] - sum(len(group['members']) for group in new_groups))
+            if prepare is not None:
+                prepare(result, claimed)
     finally:
         connection.close()
-    result = dict(report, groups=new_groups, listing_count=sum(len(group['members']) for group in new_groups),
-                  new_count=len(new_groups), seen_suppressed=report['listing_count'] - sum(len(group['members']) for group in new_groups))
     return result, claimed
+
+
+def validate_profile(profile):
+    profile = {} if profile is None else profile
+    if not isinstance(profile, dict):
+        raise ValueError('profile must be an object')
+    for key in ('max_warm_eur', 'min_rooms', 'min_area_m2', 'value_eur_m2', 'max_commute_minutes'):
+        if profile.get(key) is not None and positive_preference(profile[key]) is None:
+            raise ValueError('profile preference must be positive and finite: ' + key)
+    districts = profile.get('districts')
+    if districts is not None and (not isinstance(districts, list) or
+                                  any(not isinstance(item, str) or not item.strip() for item in districts)):
+        raise ValueError('districts must be a list of nonempty strings')
+    return dict(profile)
 
 
 def run(selected, guard, directory='flat-search', profile=None, weights=None, max_warm=None, min_rooms=None,
         exclude=(), provider=None, dry_run=False, confirm_self=False):
+    profile, weights = validate_profile(profile), weights_from(weights)
     if provider and not dry_run:
         destination(provider, confirm_self)
-    profile = dict(profile or {})
     report = collect(selected, guard, max_warm, min_rooms, exclude, profile, weights, assess=False)
     path = Path(directory) / 'watch.sqlite'
-    report, claimed = claim_new(report, path, bool(provider), dry_run)
-    enrich(report, profile, weights)
-    report['notification'] = {'status': 'disabled' if provider is None else 'no_new'}
-    if claimed:
+
+    def prepare(report, claimed):
+        enrich(report, profile, weights)
+        report['notification'] = {'status': 'disabled' if provider is None else 'no_new'}
+        if not claimed:
+            return
+        if provider:
+            report['notification'] = {'status': 'dry_run' if dry_run else 'attempted'}
         stamp = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ') + '-' + uuid4().hex[:12]
         stem = Path(directory) / 'watch/runs' / stamp
         private_directory(stem.parent)
@@ -101,13 +121,14 @@ def run(selected, guard, directory='flat-search', profile=None, weights=None, ma
             with stem.with_suffix(extension).open('x', encoding='utf-8') as stream:
                 stream.write(content)
         write_report(report, Path(directory) / 'watch')
+
+    report, claimed = claim_new(report, path, bool(provider), dry_run, prepare=prepare)
     if provider and claimed:
         receipt = send(guard, provider, 'New apartment listings: %d. Review your local %s. No safety guarantee.'
                        % (len(claimed), report['run_files']['html']), dry_run, confirm_self)
         report['notification'] = receipt
         with sqlite3.connect(str(path)) as db:
             db.executemany('UPDATE seen SET delivery=? WHERE id=?', [(receipt['status'], identifier) for identifier in claimed])
-        write_report(report, Path(directory) / 'watch')
     return report
 
 
