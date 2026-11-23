@@ -131,7 +131,7 @@ Wohnungsunternehmen, Bezirke, Betrugsrisiken, Unterlagen, Ankunft und Einzug.
 Sie bieten **Orientierung, keine Rechtsberatung**. Die kanonischen Referenzen
 und CLI-Ausgaben sind auf Englisch; deutsche Fachbegriffe werden erklärt.
 
-![Fiktive lokale Auswahlliste: Eignungsbewertung getrennt von Betrugswarnungen](docs/images/hero.png)
+![Drei fiktive Angebote mit berechneten Eignungswerten von 82, 64 und 41; Risiken werden separat geprüft](docs/images/hero.png)
 
 ## Sicherheitsmodell
 

@@ -125,7 +125,7 @@ Berlin references cover rental law, the Mietspiegel, WBS eligibility, municipal
 housing, districts, scams, application documents, newcomers and moving in.
 They are dated and sourced: **orientation, not legal advice**.
 
-![Fictional local shortlist: preference fit shown separately from scam warnings](docs/images/hero.png)
+![Three fictional offers with computed fit scores of 82, 64 and 41; safety is assessed separately](docs/images/hero.png)
 
 ## Safety model
 

@@ -1,0 +1,10 @@
+{
+  "title": "FICTIONAL - expensive rent",
+  "district": "Mitte",
+  "area_m2": 60,
+  "rooms": 2.5,
+  "cold_eur": 1404,
+  "costs_eur": 180,
+  "warm_eur": 1584,
+  "deposit_eur": 4212
+}

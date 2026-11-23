@@ -1,30 +1,56 @@
 # Launch demo assets
 
 `demo.gif` is a 22-second terminal-style animation generated with Python/Pillow
-from captured command output, not a recording of an AI conversation. It uses
-fictional offline data only. `hero.png` is the final shortlist frame.
-Pillow is only an asset-generation tool, not a dependency of the skill.
+from actual skill-command output, not a recording of an AI conversation.
+`hero.png` is the final fit-score frame. Pillow is only an asset-generation
+tool, not a dependency of the skill.
 
-The commands ran against a copy installed by `npx skills add` from a local
-checkout into a clean temporary workspace. Offline Python processes had socket
-connections disabled. No real listing, personal profile or live search result
-appears in either asset.
+All three listings and the profile are fictional. The inputs live in [demo/](demo/).
+Commands ran from a repository checkout with Python socket connections disabled.
+No real listing, personal profile or live search result appears in either asset.
+
+## Replay the commands
+
+From the repository root, using Python 3.9+ and a POSIX shell:
+
+```bash
+S=skills/berlin-apartment-search/scripts
+D=docs/images/demo
+
+# Scene 1: advance payment, posted keys, owner abroad, irreversible payment.
+python3 "$S/scam_check.py" < "$D/scam.txt"
+
+# Scene 2: expensive rent against a FICTIONAL dated comparison.
+python3 "$S/rent_check.py" < "$D/rent-high.json"
+
+# Scene 3: the ordinary example triggers none of these checks.
+python3 "$S/scam_check.py" < "$D/clean.json"
+python3 "$S/rent_check.py" < "$D/rent-clean.json"
+
+# Scene 4: three actual CLI scores; the inline stdlib formatter prints score only.
+for name in clean high-rent scam; do
+  printf '%s: ' "$name"
+  python3 "$S/fit_score.py" --profile "$D/profile.json" \
+    < "$D/$name.json" | python3 -c \
+    'import json,sys; print(json.load(sys.stdin)["score"])'
+done
+```
 
 ## What the demo shows
 
-1. A fictional Mitte apartment: 50 m², two rooms, €900 cold rent, €1,000 warm
-   rent and €4,000 deposit. The text demands advance payment by Western Union
-   and promises posted keys from an owner abroad.
-2. The actual `scam_check.py` JSON output: score 15, four signals, high review.
-3. The actual `rent_check.py` JSON output: €18/m² cold rent, deposit above three
-   cold rents, and an **unknown** rent-cap comparison without dated comparison
-   data. This is orientation, not a legal conclusion.
-4. A shortlist created by `search.py` with a mocked source returning two
-   fictional listings, then passed to `report.py`. A small display helper reads
-   `groups[].members[]` from `flat-search/results.json` and prints the existing
-   `fit.score` and `scam.review` values without recalculating them. Both examples
-   fit the profile equally, but their scam signals differ. **Fit is not safety.**
+| Fictional listing | Computed fit | Separate checks |
+|---|---:|---|
+| `clean` | 82.0 | No scam signals; below the synthetic rent comparison; no deposit/cost warning |
+| `high-rent` | 64.0 | €23.40/m² cold rent, above the synthetic €16.50/m² limit (reference plus 10%) |
+| `scam` | 41.0 | Scam score 15, high review: advance payment, posted keys, owner abroad and Western Union |
 
-The terminal variable `S` points to the installed skill's scripts directory.
-Command output is line-wrapped to fit the image; values are not edited.
-The runtime scripts remain standard-library-only and Python 3.9+ compatible.
+The €15/m² reference and its date are **made up for teaching**, not real Berlin
+Mietspiegel data or a legal finding. The tool compares against 110% of that
+reference (€16.50/m²); real use requires an applicable, dated comparison and
+checks for exceptions. The profile's separate €10/m² value preference is not
+a legal benchmark. Unknown freshness and commute inputs remain neutral.
+
+Each scene runs real skill commands. There is no custom shortlist helper.
+Only the final loop's inline standard-library JSON formatter reduces output to
+the returned score; it does not calculate or change it. Output is line-wrapped
+for the images. **Fit is not safety; no warnings does not establish safety.**
