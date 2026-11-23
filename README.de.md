@@ -6,7 +6,7 @@
 
 [![CI](https://github.com/umutyesildal/berlin-apartment-search/actions/workflows/tests.yml/badge.svg)](https://github.com/umutyesildal/berlin-apartment-search/actions/workflows/tests.yml)
 [![Lizenz: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![skills.sh](https://skills.sh/b/umutyesildal/berlin-apartment-search)](https://skills.sh/umutyesildal/berlin-apartment-search)
+[![skills.sh](https://skills.sh/b/umutyesildal/berlin-apartment-search)](https://skills.sh/umutyesildal/berlin-apartment-search/berlin-apartment-search)
 
 ![Offline-Demo: ein fiktives Inserat auf Betrugs- und Mietwarnungen prüfen, danach eine nach Eignung bewertete Auswahlliste vergleichen](docs/images/demo.gif)
 
