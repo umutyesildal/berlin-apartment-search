@@ -107,7 +107,7 @@ class Guard:
             if body is None or parsed.query or parsed.fragment or not re.fullmatch(path_pattern, parsed.path):
                 raise SourceError('notification endpoint not permitted')
         self.reserve(site)
-        request_headers = {'User-Agent': 'berlin-apartment-search/0.3.0',
+        request_headers = {'User-Agent': 'berlin-apartment-search/0.3.1',
                            'Accept': 'text/html,application/json', 'Accept-Encoding': 'identity'}
         request_headers.update(headers or {})
         request = Request(url, data=body, headers=request_headers)

@@ -11,6 +11,20 @@ from search import collect, main, markdown, write_report
 
 
 class SearchTests(OfflineTest):
+    def test_invalid_profile_is_rejected_before_guard_or_adapter(self):
+        for profile in ({'districts': 7}, {'districts': 'Mitte'}, {'max_warm_eur': -1}):
+            with self.subTest(profile=profile), tempfile.TemporaryDirectory() as directory:
+                path = Path(directory) / 'profile.json'
+                path.write_text(json.dumps(profile), encoding='utf-8')
+                with patch('search.Guard') as guard, \
+                        patch('search.collect', return_value={'groups': [], 'sources': {}, 'listing_count': 0}) as collect_mock, \
+                        patch('search.write_report'), patch('sys.stdout', io.StringIO()), \
+                        patch('sys.stderr', io.StringIO()), self.assertRaises(SystemExit) as error:
+                    main(['--profile', str(path), '--source', 'inberlinwohnen'])
+                self.assertEqual(error.exception.code, 2)
+                guard.assert_not_called()
+                collect_mock.assert_not_called()
+
     def test_cli_filters_do_not_replace_profile_scoring_preferences(self):
         row = Listing('fiction', '1', 'https://example.test/1', 'Fictional flat', warm_eur=1400, rooms=1)
         with patch('sources.inberlinwohnen.search', return_value=[row]):

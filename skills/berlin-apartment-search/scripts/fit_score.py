@@ -22,6 +22,20 @@ def positive(value):
         return None
 
 
+def validate_profile(profile):
+    profile = {} if profile is None else profile
+    if not isinstance(profile, dict):
+        raise ValueError('profile must be an object')
+    for key in ('max_warm_eur', 'min_rooms', 'min_area_m2', 'value_eur_m2', 'max_commute_minutes'):
+        if profile.get(key) is not None and positive(profile[key]) is None:
+            raise ValueError('profile preference must be positive and finite: ' + key)
+    districts = profile.get('districts')
+    if districts is not None and (not isinstance(districts, list) or
+                                  any(not isinstance(item, str) or not item.strip() for item in districts)):
+        raise ValueError('districts must be a list of nonempty strings')
+    return dict(profile)
+
+
 def weights_from(overrides=None):
     weights = dict(WEIGHTS)
     if overrides is not None and not isinstance(overrides, dict):
@@ -99,7 +113,7 @@ def main(argv=None):
     parser.add_argument('--weights', default='{}', help='JSON dict of factor weight overrides')
     args = parser.parse_args(argv)
     try:
-        profile = json.loads(args.profile.read_text(encoding='utf-8')) if args.profile else {}
+        profile = validate_profile(json.loads(args.profile.read_text(encoding='utf-8')) if args.profile else {})
         print(json.dumps(score(json.load(sys.stdin), profile, json.loads(args.weights)), ensure_ascii=False))
         return 0
     except (OSError, ValueError, TypeError, AttributeError) as error:

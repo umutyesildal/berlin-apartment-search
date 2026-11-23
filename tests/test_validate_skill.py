@@ -1,5 +1,6 @@
 import json
 import shutil
+import subprocess
 import tempfile
 import zipfile
 from pathlib import Path
@@ -11,6 +12,43 @@ from validate_skill import validate
 
 
 class StructureTests(OfflineTest):
+    def test_environment_variants_are_ignored_except_public_example(self):
+        ignored = ['.env', '.env.local', '.env.production', 'nested/.env.local']
+        paths = ignored + ['.env.example', 'nested/.env.example']
+        result = subprocess.run(['git', 'check-ignore', '--no-index', '--stdin'], cwd=ROOT,
+                                input='\n'.join(paths) + '\n', text=True, capture_output=True)
+        self.assertEqual(set(result.stdout.splitlines()), set(ignored))
+
+    def test_nested_private_files_are_excluded_from_both_archives(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / 'repo'
+            shutil.copytree(ROOT, root, symlinks=True, ignore=shutil.ignore_patterns('.git', 'flat-search', '__pycache__', 'dist'))
+            skill = root / 'skills/berlin-apartment-search'
+            forbidden = ['assets/nested/flat-search/results.json', 'scripts/flat-search/private.py',
+                         'assets/.env.local', 'assets/.env/config.json', 'assets/state.sqlite',
+                         'assets/state.db', 'scripts/__pycache__/private.py', 'assets/private.exe']
+            for relative in forbidden:
+                path = skill / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text('fictional private data', encoding='utf-8')
+            with patch('package_skill.ROOT', root), patch('package_openai.ROOT', root), \
+                    patch('package_skill.validate', side_effect=lambda: validate(root)):
+                canonical = package_skill.package(root / 'dist/skill.zip')
+                openai = package_openai.build(root / 'dist/openai.zip')
+            for path, prefix in ((canonical, 'berlin-apartment-search/'), (openai, 'skills/berlin-apartment-search/')):
+                with self.subTest(archive=path.name), zipfile.ZipFile(path) as archive:
+                    names = set(archive.namelist())
+                    self.assertIn(prefix + 'SKILL.md', names)
+                    self.assertIn(prefix + 'assets/profile.template.json', names)
+                    self.assertTrue(all(prefix + relative not in names for relative in forbidden))
+
+    def test_private_directories_are_ignored_at_every_depth(self):
+        paths = ['flat-search/results.json', 'skills/berlin-apartment-search/flat-search/results.json',
+                 'nested/project/flat-search/profile.json']
+        result = subprocess.run(['git', 'check-ignore', '--no-index', '--stdin'], cwd=ROOT,
+                                input='\n'.join(paths) + '\n', text=True, capture_output=True)
+        self.assertEqual(set(result.stdout.splitlines()), set(paths))
+
     def test_repository_structure(self):
         self.assertEqual(validate(), [])
 

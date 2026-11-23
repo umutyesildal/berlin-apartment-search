@@ -73,7 +73,7 @@ def validate(root=ROOT):
         link = root / directory / 'skills' / NAME
         if not link.is_symlink() or link.resolve() != skill.resolve():
             errors.append('skill symlink missing or incorrect: ' + directory)
-    if '/flat-search/' not in (root / '.gitignore').read_text():
+    if 'flat-search/' not in (root / '.gitignore').read_text().splitlines():
         errors.append('private data directory is not gitignored')
     for name in ('README.md', 'README.de.md'):
         readme = root / name

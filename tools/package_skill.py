@@ -6,6 +6,16 @@ from pathlib import Path
 from validate_skill import NAME, ROOT, validate
 
 
+def allowed_skill_path(path):
+    path = Path(path)
+    if any(part in ('flat-search', '__pycache__', '..') or part.startswith('.env') for part in path.parts):
+        return False
+    if path.as_posix() in ('SKILL.md', 'LICENSE'):
+        return True
+    extensions = {'scripts': {'.py'}, 'references': {'.md'}, 'assets': {'.txt', '.json', '.yml', '.yaml'}}
+    return len(path.parts) > 1 and path.suffix in extensions.get(path.parts[0], set())
+
+
 def package(output):
     errors = validate()
     if errors:
@@ -13,9 +23,12 @@ def package(output):
     output = Path(output)
     output.parent.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(output, 'w', zipfile.ZIP_DEFLATED) as archive:
-        for path in sorted((ROOT / 'skills' / NAME).rglob('*')):
-            if path.is_file() and '__pycache__' not in path.parts and path.suffix != '.pyc':
-                archive.write(path, str(Path(NAME) / path.relative_to(ROOT / 'skills' / NAME)))
+        skill = ROOT / 'skills' / NAME
+        for path in sorted(skill.rglob('*')):
+            relative = path.relative_to(skill)
+            if path.is_file() and not path.is_symlink() and allowed_skill_path(relative):
+                if skill.resolve() in path.resolve().parents:
+                    archive.write(path, str(Path(NAME) / relative))
         archive.write(ROOT / 'LICENSE', NAME + '/LICENSE')
     return output
 

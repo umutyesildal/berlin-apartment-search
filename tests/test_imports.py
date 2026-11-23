@@ -5,13 +5,77 @@ from pathlib import Path
 from unittest.mock import patch
 from support import ROOT, OfflineTest, fixture, working_directory
 from alerts import main as alerts_main, parse as parse_email
-from import_page import build_report, main as page_main, parse_html, parse_text
+from import_page import build_report, main as page_main, parse_html, parse_text, visible_text
+from sources.html_tools import Document
 
 
 FIXTURES = ROOT / 'tests' / 'fixtures'
 
 
 class ImportTests(OfflineTest):
+    def test_source_whitespace_does_not_change_table_rents(self):
+        url = 'https://www.immowelt.de/expose/fictional-whitespace'
+        for name in ('saved_rent_table.html', 'saved_rent_table_amount_first.html', 'saved_rent_dl.html'):
+            compact = fixture(name).replace('\n', '')
+            formatted = compact.replace('><', '>\n  <')
+            formatted = formatted.replace('Kaltmiete', '\n Kaltmiete\n ').replace('Warmmiete', '\n Warmmiete\n ')
+            formatted = formatted.replace('700 €', '700\n €').replace('900 €', '900\t €')
+            with self.subTest(fixture=name):
+                for html in (compact, formatted):
+                    row = parse_html(html, url)[0]
+                    self.assertEqual((row.cold_eur, row.warm_eur), (700, 900))
+
+    def test_rent_amounts_are_claimed_once_in_label_order(self):
+        url = 'https://www.immowelt.de/expose/fictional-pairs'
+        for text, expected in [
+                ('Kaltmiete 700 € Warmmiete 900 €', (700, 900)),
+                ('700 € Kaltmiete 900 € Warmmiete', (700, 900)),
+                ('Warmmiete: 900 EUR; Kaltmiete: 700 EUR', (700, 900)),
+                ('700 € Kaltmiete Warmmiete 900 €', (700, 900)),
+                ('Kaltmiete 700 € Warmmiete', (700, None)),
+                ('700 € Kaltmiete Warmmiete', (700, None)),
+                ('Kaltmiete Warmmiete 900 €', (None, 900))]:
+            with self.subTest(text=text):
+                row = parse_text(text, url)[0]
+                self.assertEqual((row.cold_eur, row.warm_eur), expected)
+
+    def test_nested_table_and_cell_paragraph_boundaries(self):
+        url = 'https://www.immowelt.de/expose/fictional-nested'
+        for fields in (
+                '<table><tr><td><table><tr><td>Kaltmiete</td><td>700 €</td></tr>'
+                '<tr><td>Warmmiete</td><td>900 €</td></tr></table></td></tr></table>',
+                '<table><tr><td><p>Kaltmiete 700 €</p><p>Warmmiete 900 €</p></td></tr></table>',
+                '<table><tr><td>Kaltmiete</td><td>700 €</td><td>Warmmiete</td><td>900 €</td></tr></table>'):
+            html = '<main><h1>Flat</h1>' + fields + '</main>'
+            with self.subTest(fields=fields):
+                row = parse_html(html, url)[0]
+                self.assertEqual((row.cold_eur, row.warm_eur), (700, 900))
+        paragraphs = Document('<table><tr><td><p>Kaltmiete 700 €</p><p>Warmmiete 900 €</p></td></tr></table>')
+        self.assertIn('700 €\nWarmmiete', visible_text(paragraphs.root, set()))
+
+    def test_html_rent_fields_keep_block_boundaries(self):
+        url = 'https://www.immowelt.de/expose/fictional-fields'
+        for name in ('saved_rent_dl.html', 'saved_rent_table.html', 'saved_rent_table_amount_first.html'):
+            with self.subTest(fixture=name):
+                row = parse_html(fixture(name), url)[0]
+                self.assertEqual((row.cold_eur, row.warm_eur), (700, 900))
+        for cells in ('<td><p>700 €</p></td><th><div>Kaltmiete</div></th>',
+                      '<th><p>Kaltmiete</p></th><td><div>700 €</div></td>'):
+            html = '<main><h1>Flat</h1><table><tr>' + cells + '</tr>\n<tr><td>900 €</td><th>Warmmiete</th></tr></table></main>'
+            with self.subTest(cells=cells):
+                row = parse_html(html, url)[0]
+                self.assertEqual((row.cold_eur, row.warm_eur), (700, 900))
+        for fields in ('<div>Kaltmiete:</div><div>700 €</div><div>Warmmiete:</div><div>900 €</div>',
+                       '<p>Kaltmiete:<br>700 €</p><p>Warmmiete:<br>900 €</p>',
+                       '<ul><li>700 € Kaltmiete</li><li>900 € Warmmiete</li></ul>'):
+            with self.subTest(fields=fields):
+                row = parse_html('<main><h1>Flat</h1>' + fields + '</main>', url)[0]
+                self.assertEqual((row.cold_eur, row.warm_eur), (700, 900))
+        row = parse_html('<main><h1>Flat</h1><dl><dt>Kaltmiete</dt><dd></dd>'
+                         '<dt>Warmmiete</dt><dd>900 €</dd></dl></main>', url)[0]
+        self.assertIsNone(row.cold_eur)
+        self.assertEqual(row.warm_eur, 900)
+
     def test_html_alert_keeps_supported_links_without_facts_but_saved_shell_does_not(self):
         html = ('<p><a href="https://www.immowelt.de/expose/fictional-alert">View offer</a></p>'
                 '<p><a href="https://www.immobilienscout24.de/expose/123456">Other offer</a></p>'

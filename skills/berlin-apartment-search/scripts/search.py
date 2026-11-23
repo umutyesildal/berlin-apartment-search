@@ -13,7 +13,7 @@ from private_paths import private_directory, private_file
 from classify import PATTERNS, classify
 from dedupe import group
 from commute import Commute, coordinates
-from fit_score import score, weights_from
+from fit_score import score, validate_profile, weights_from
 from guard import Blocked, Deferred, Guard, SourceError
 from integrity import check
 from models import normalize
@@ -149,9 +149,7 @@ def main(argv=None):
     parser.add_argument('--commute-mode', choices=('transit', 'bike'), default='transit')
     args = parser.parse_args(argv)
     try:
-        profile = json.loads(args.profile.read_text(encoding='utf-8')) if args.profile else {}
-        if not isinstance(profile, dict):
-            raise ValueError('profile must be a JSON object')
+        profile = validate_profile(json.loads(args.profile.read_text(encoding='utf-8')) if args.profile else {})
         weights = weights_from(json.loads(args.weights))
         destination = coordinates(args.commute_to) if args.commute_to else None
     except (OSError, ValueError, TypeError, AttributeError) as error:

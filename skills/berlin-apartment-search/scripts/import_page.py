@@ -54,22 +54,38 @@ def from_text(text, url, title='', allow_unknown=False):
               'costs_eur': 'Nebenkosten|Betriebskosten', 'deposit_eur': 'Kaution'}
     lines = text.splitlines()
     any_label = r'\b(?:' + '|'.join(labels.values()) + r')\b'
+    token_pattern = '|'.join('(?P<' + field + '>\\b(?:' + label + ')\\b)' for field, label in labels.items())
+    token_pattern += '|(?P<price>' + amount + ')'
+    claimed = set()
+    for line_index, line in enumerate(lines):
+        tokens = list(re.finditer(token_pattern, line, re.I))
+        for index, token in enumerate(tokens):
+            field = next((key for key in labels if token.group(key) is not None), None)
+            if field is None:
+                continue
+            for adjacent in (index - 1, index + 1):
+                if not 0 <= adjacent < len(tokens):
+                    continue
+                price = tokens[adjacent]
+                if price.group('price') is None or (line_index, price.start()) in claimed:
+                    continue
+                between = line[price.end():token.start()] if adjacent < index else line[token.end():price.start()]
+                if re.fullmatch(r'[ \t\u00a0:;|=\-]*', between):
+                    if getattr(listing, field) is None:
+                        setattr(listing, field, re.match(amount, price.group('price'), re.I).group(1))
+                    claimed.add((line_index, price.start()))
+                    break
     for field, label in labels.items():
-        match = None
-        for pattern in (amount + gap + r'(?:' + label + r')\b',
-                        r'\b(?:' + label + r')' + gap + ':?' + gap + amount):
-            match = next((found for line in lines for found in [re.search(pattern, line, re.I)] if found), None)
-            if match:
-                break
-        if match is None:
-            for line, following in zip(lines, lines[1:]):
-                if (re.fullmatch(gap + r'(?:' + label + r')' + gap + ':' + gap, line, re.I)
-                        and not re.search(any_label, following, re.I)):
-                    match = re.match(gap + amount, following, re.I)
-                    if match:
-                        break
-        if match:
-            setattr(listing, field, match.group(1))
+        if getattr(listing, field) is not None:
+            continue
+        for index, (line, following) in enumerate(zip(lines, lines[1:])):
+            if (re.fullmatch(gap + r'(?:' + label + r')' + gap + ':' + gap, line, re.I)
+                    and not re.search(any_label, following, re.I)):
+                match = re.match(gap + amount, following, re.I)
+                if match and (index + 1, match.start(1)) not in claimed:
+                    setattr(listing, field, match.group(1))
+                    claimed.add((index + 1, match.start(1)))
+                    break
     if not any(getattr(listing, field) is not None for field in labels):
         prices = re.findall(amount, text, re.I)
         if len(prices) == 1:
@@ -123,8 +139,23 @@ def anchor_link(node, base_url):
 def visible_text(node, excluded):
     if id(node) in excluded or node.tag in ('script', 'style', 'svg', 'head', 'title'):
         return ''
-    return ' '.join(part for part in (child if isinstance(child, str) else visible_text(child, excluded)
-                                     for child in node.children) if part.strip()).strip()
+    if node.tag == 'br':
+        return '\n'
+    parts = [re.sub(r'\s+', ' ', child) if isinstance(child, str) else visible_text(child, excluded)
+             for child in node.children]
+    text = ' '.join(part for part in parts if part)
+    text = re.sub(r'[ \t\r]*\n[ \t\r]*', '\n', text)
+    text = re.sub(r'\n+', '\n', text).strip()
+    if node.tag == 'tr':
+        return '\n' + text + '\n'
+    if node.tag in ('td', 'th'):
+        return text + '\t'
+    if node.tag in ('dt', 'dd', 'li', 'div', 'p', 'section', 'article',
+                    'main', 'dl', 'table', 'ul', 'ol', 'h1', 'h2', 'h3'):
+        if re.fullmatch(r'Kaltmiete|Nettokaltmiete|Warmmiete|Gesamtmiete|Nebenkosten|Betriebskosten|Kaution', text, re.I):
+            text += ':'
+        return '\n' + text + '\n'
+    return text
 
 
 def parse_html(text, base_url='', require_facts=True):
@@ -197,7 +228,7 @@ def parse_html(text, base_url='', require_facts=True):
         if len(links) == 1:
             link, title = next(iter(links.values()))
             heading = next((child.text() for child in node.walk() if child.tag in ('h1', 'h2', 'h3')), '')
-            rows.append(from_text(node.text(), link, heading or title))
+            rows.append(from_text(visible_text(node, set()), link, heading or title))
     for node in root.walk():
         if node.tag == 'a':
             if (set(node.attrs.get('rel', '').casefold().split()).intersection(('next', 'prev')) or
@@ -230,7 +261,7 @@ def parse_html(text, base_url='', require_facts=True):
                 else:
                     excluded.add(id(node))
             heading = next((child.text() for child in context.walk() if child.tag in ('h2', 'h3')), node.text())
-            row = from_text(context.text(), link, heading)
+            row = from_text(visible_text(context, set()), link, heading)
             if row:
                 rows.append(row)
     if main_identity:

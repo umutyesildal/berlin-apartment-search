@@ -11,7 +11,7 @@ from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 from uuid import uuid4
 from classify import PATTERNS
 from dedupe import possible_match
-from fit_score import positive as positive_preference, weights_from
+from fit_score import validate_profile, weights_from
 from guard import Guard
 from models import Listing
 from notify import destination, send
@@ -83,20 +83,6 @@ def claim_new(report, path, notification=False, dry_run=False, now=None, prepare
     finally:
         connection.close()
     return result, claimed
-
-
-def validate_profile(profile):
-    profile = {} if profile is None else profile
-    if not isinstance(profile, dict):
-        raise ValueError('profile must be an object')
-    for key in ('max_warm_eur', 'min_rooms', 'min_area_m2', 'value_eur_m2', 'max_commute_minutes'):
-        if profile.get(key) is not None and positive_preference(profile[key]) is None:
-            raise ValueError('profile preference must be positive and finite: ' + key)
-    districts = profile.get('districts')
-    if districts is not None and (not isinstance(districts, list) or
-                                  any(not isinstance(item, str) or not item.strip() for item in districts)):
-        raise ValueError('districts must be a list of nonempty strings')
-    return dict(profile)
 
 
 def run(selected, guard, directory='flat-search', profile=None, weights=None, max_warm=None, min_rooms=None,
