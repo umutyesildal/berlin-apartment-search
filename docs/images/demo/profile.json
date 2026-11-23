@@ -1,0 +1,7 @@
+{
+  "max_warm_eur": 1200,
+  "min_area_m2": 60,
+  "min_rooms": 2.5,
+  "districts": ["Mitte"],
+  "value_eur_m2": 10
+}
