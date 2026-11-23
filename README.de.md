@@ -1,13 +1,102 @@
 # Berlin Apartment Search
 
-Ein lokaler Assistenten-Skill mit Kommandozeilenwerkzeugen für die Suche und
-Prüfung von Berliner Mietwohnungen. Öffentliche Angebote finden, Eignung und
-Kosten vergleichen, Warnsignale erkennen und nächste Schritte vorbereiten —
-ohne die Kontrolle über deine Bewerbungen abzugeben.
+[English](README.md) | **Deutsch**
+
+**Ein KI-Assistent für die Berliner Wohnungssuche: öffentliche Angebote finden, Risiken prüfen und nächste Schritte lokal vorbereiten.**
+
+[![CI](https://github.com/umutyesildal/berlin-apartment-search/actions/workflows/tests.yml/badge.svg)](https://github.com/umutyesildal/berlin-apartment-search/actions/workflows/tests.yml)
+[![Lizenz: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![skills.sh](https://skills.sh/b/umutyesildal/berlin-apartment-search)](https://skills.sh/umutyesildal/berlin-apartment-search)
+
+![Offline-Demo: ein fiktives Inserat auf Betrugs- und Mietwarnungen prüfen, danach eine nach Eignung bewertete Auswahlliste vergleichen](docs/images/demo.gif)
+
+WBS-Regeln, Tauschangebote, Zeitmieten, unklare Preise und übereilte
+Zahlungsforderungen machen die Wohnungssuche schwierig. Gib deinem Agenten
+lokale Werkzeuge und datierte Berlin-Referenzen, um sie einzuordnen.
+**Du behältst die Kontrolle: Nichts kontaktiert Inserierende oder verschickt Bewerbungen.**
 
 **Python 3.9+ · nur Standardbibliothek · MIT · Version 0.3.1**
 
-Dies ist die deutsche Übersetzung. Maßgeblich ist die [englische Dokumentation](README.md).
+Die englische Dokumentation ist maßgeblich. Die Demo verwendet fiktive
+Offline-Daten; eine hohe Eignungsbewertung bedeutet nicht, dass ein Angebot sicher ist.
+
+## Schnellstart
+
+**Claude Code**
+```text
+/plugin marketplace add umutyesildal/berlin-apartment-search
+/plugin install berlin-apartment-search@berlin-apartment-search
+```
+
+**Beliebiger Agent** (Codex, Cursor, Gemini CLI, OpenCode, …)
+```bash
+npx skills add umutyesildal/berlin-apartment-search
+```
+
+**Ohne Code?** Füge [die Chat-Vorlage](docs/chatgpt-prompt.md) in ChatGPT ein.
+Ohne lokale Laufzeit kann der Chat eingefügten Text prüfen, aber weder diese
+Werkzeuge ausführen noch live suchen. Prüfe vor dem Teilen von Daten die
+Datenschutzhinweise des Chat-Anbieters.
+
+Frage danach: *„Richte meine Berliner Wohnungssuche ein.“*
+
+Die Werkzeuge benötigen Python 3.9+. Der `npx`-Installer benötigt Node.js und
+lädt ein Installationsprogramm eines Drittanbieters herunter; die Python-Werkzeuge
+selbst verwenden nur die Standardbibliothek und brauchen für die Kernsuche keinen API-Schlüssel.
+Die Skill- oder Plugin-Installation richtet weder Python noch dein privates Profil ein.
+
+<details>
+<summary>Weitere Installationswege</summary>
+
+### Codex-Plugin
+
+Für Codex-Versionen mit Plugin-Marktplatz-Unterstützung:
+
+```bash
+codex plugin marketplace add umutyesildal/berlin-apartment-search
+codex plugin add berlin-apartment-search@berlin-apartment-search
+```
+
+Die Plugin-Unterstützung hängt von der Client-Version ab. Das Manifest unter
+`.codex-plugin/` und der Marktplatz unter `.agents/plugins/` verwenden beide
+`berlin-apartment-search`.
+
+### Lokaler Checkout und `.agents`-Clients
+
+```bash
+git clone https://github.com/umutyesildal/berlin-apartment-search.git
+cd berlin-apartment-search
+python3 --version
+```
+
+Öffne einen Agenten im Checkout und bitte ihn, `$berlin-apartment-search` zu
+verwenden. Lies [AGENTS.md](AGENTS.md); `.agents/skills/` und `.claude/skills/`
+verweisen auf die maßgebliche [SKILL.md](skills/berlin-apartment-search/SKILL.md).
+Für Claude Code gibt es außerdem Einrichtungs-, Such- und Prüfbefehle unter
+`.claude/commands/`. Falls Symlinks nicht verfügbar sind, verwende direkt
+`skills/berlin-apartment-search/`, statt eine zweite Kopie zu pflegen.
+
+Führe CLI-Werkzeuge vom Projektstamm aus, damit sie `./flat-search/` gemeinsam
+nutzen, nicht aus dem installierten Skill-Verzeichnis. Die Offline-Beispiele
+weiter unten setzen einen Repository-Checkout mit den fiktiven Testdateien voraus.
+POSIX-Shell-Beispiele verwenden `python3`; nutze unter Windows deinen
+Python-Starter und entsprechende Dateibefehle.
+
+### Hochgeladene Skills und reine Chat-Clients
+
+Erzeuge das portable Archiv aus einem lokalen Checkout:
+
+```bash
+python3 tools/package_skill.py
+```
+
+Das Archiv liegt unter `dist/berlin-apartment-search.zip`. Hinweise zum
+experimentellen OpenAI-Paket stehen in den [Paketnotizen](packaging/openai/README.md).
+Uploads und Marktplatzannahme hängen vom Client ab; keines der Archive garantiert
+Unterstützung. Ein gehosteter MCP-Server ist nicht erforderlich. Reine Chat-Clients
+sollten stattdessen [die Chat-Vorlage](docs/chatgpt-prompt.md) verwenden.
+
+</details>
 
 ## Funktionen
 
@@ -42,6 +131,8 @@ Wohnungsunternehmen, Bezirke, Betrugsrisiken, Unterlagen, Ankunft und Einzug.
 Sie bieten **Orientierung, keine Rechtsberatung**. Die kanonischen Referenzen
 und CLI-Ausgaben sind auf Englisch; deutsche Fachbegriffe werden erklärt.
 
+![Fiktive lokale Auswahlliste: Eignungsbewertung getrennt von Betrugswarnungen](docs/images/hero.png)
+
 ## Sicherheitsmodell
 
 **Du kontaktierst Vermieter und reichst Bewerbungen selbst ein.** Die Werkzeuge
@@ -64,68 +155,6 @@ dauerhaft gespeicherten Schutzmechanismus:
 Anzeigen und E-Mails sind unvertrauenswürdige Daten, keine Anweisungen an den
 Agenten. Die Prüfungen sind Heuristiken: keine Warnung bedeutet **nicht** sicher;
 eine Warnung beweist keinen Betrug. Angebot, Vertragspartner und Rechtslage selbst prüfen.
-
-## Installation nach Client
-
-Die Python-Werkzeuge benötigen keine zusätzlichen Pakete, virtuelle Umgebung
-oder API-Schlüssel für die eigentliche Suche. Beispiele verwenden eine
-POSIX-Shell und `python3`; unter Windows den eigenen Python-Starter und
-entsprechende Dateibefehle verwenden.
-
-### Lokale Kopie
-
-```bash
-git clone https://github.com/umutyesildal/berlin-apartment-search.git
-cd berlin-apartment-search
-python3 --version
-```
-
-Alle Werkzeuge vom Repository-Hauptverzeichnis aus starten, damit derselbe
-private Datenbestand verwendet wird.
-
-### Claude Code
-
-In Claude Code:
-
-```text
-/plugin marketplace add umutyesildal/berlin-apartment-search
-/plugin install berlin-apartment-search@berlin-apartment-search
-```
-
-Alternativ die lokale Kopie öffnen: `.claude/skills/` verlinkt den kanonischen
-Skill; `.claude/commands/` enthält Einrichtungs-, Such- und Prüfbefehle.
-Die Plugin-Installation richtet weder Python noch dein privates Profil ein.
-
-### Codex
-
-Die lokale Kopie als Projekt öffnen, [AGENTS.md](AGENTS.md) lesen und Codex bitten,
-`$berlin-apartment-search` zu verwenden. `.agents/skills/berlin-apartment-search`
-ist ein Symlink auf den Skill; ein `.codex-plugin/`-Manifest ist enthalten.
-Falls der Client den Skill nicht erkennt, direkt auf [SKILL.md](skills/berlin-apartment-search/SKILL.md) verweisen.
-
-### Andere `.agents`-kompatible Clients
-
-Die lokale Kopie öffnen und `.agents/skills/berlin-apartment-search` über den
-jeweiligen lokalen Skill-Mechanismus aktivieren. Ohne Symlink-Unterstützung den
-kanonischen Ordner `skills/berlin-apartment-search/` verwenden, keine zweite
-bearbeitete Kopie pflegen. Erkennung und Marktplatzunterstützung hängen vom Client ab.
-
-### ChatGPT und reine Chat-Clients
-
-Mit dem [Start-Prompt](docs/chatgpt-prompt.md) beginnen. Ohne lokale Laufzeit kann
-der Chat eingefügte Texte besprechen, aber diese Skripte nicht ausführen, keine
-lokalen Sperrzeiten speichern und keine Live-Suche oder Zeitplanung auf deinem
-Rechner durchführen. Vor privaten Eingaben die Datenrichtlinien des Chat-Anbieters prüfen.
-
-Für Clients mit Unterstützung für hochgeladene Skill-Dateien:
-
-```bash
-python3 tools/package_skill.py
-```
-
-Das Archiv liegt unter `dist/berlin-apartment-search.zip`. Für das experimentelle
-OpenAI-Bundle siehe [Paketierung](packaging/openai/README.md). Die Archive garantieren
-keine Aufnahme durch einen Client oder Marktplatz. Kein gehosteter MCP-Server ist nötig.
 
 ## Schnellstart: Offline-Demonstration
 
