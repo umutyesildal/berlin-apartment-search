@@ -3,6 +3,14 @@
 User-visible changes to Berlin Apartment Search. Versions describe the skill
 and plugin manifests; marketplace availability is not implied.
 
+## Unreleased
+
+### Documentation
+
+- Added install badges, an offline demo GIF and quick-start install steps to
+  both READMEs.
+- Linked the sister skill Berlin Job Search from both READMEs.
+
 ## 0.3.1
 
 ### Fixed
