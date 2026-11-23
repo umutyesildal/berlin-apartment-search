@@ -20,6 +20,8 @@ contacts advertisers or submits applications.**
 English is the canonical documentation. The demo uses fictional offline data;
 a high fit score does not mean an offer is safe.
 
+**Sister skill:** Looking for work in Berlin? Also see [Berlin Job Search](https://github.com/umutyesildal/berlin-job-search) — job search and application preparation for Berlin and Germany.
+
 ## Quick start
 
 **Claude Code**

@@ -20,6 +20,8 @@ lokale Werkzeuge und datierte Berlin-Referenzen, um sie einzuordnen.
 Die englische Dokumentation ist maßgeblich. Die Demo verwendet fiktive
 Offline-Daten; eine hohe Eignungsbewertung bedeutet nicht, dass ein Angebot sicher ist.
 
+**Schwester-Skill:** Du suchst Arbeit in Berlin? Schau dir auch [Berlin Job Search](https://github.com/umutyesildal/berlin-job-search) an — Jobsuche und Bewerbungsvorbereitung für Berlin und Deutschland.
+
 ## Schnellstart
 
 **Claude Code**
