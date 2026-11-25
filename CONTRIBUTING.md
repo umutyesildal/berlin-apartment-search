@@ -28,8 +28,15 @@ python3 -m unittest discover -s tests -v
 python3 tools/validate_skill.py
 ```
 
-CI runs both commands on Python 3.9 and 3.12. Document user-visible changes in
-[CHANGELOG.md](CHANGELOG.md). English is canonical; keep the German README in
-sync. Cite official sources and dates for legal or city guidance, distinguish
-heuristics from law, and retain the “orientation, not legal advice” disclaimer.
-Report security issues using [SECURITY.md](SECURITY.md), not a public bug report.
+GitHub Actions runs both commands on every pull request on Python 3.9 and 3.12.
+The offline tests use synthetic fixtures and mocks to cover listing and alert
+parsing, search and ranking, rent and scam checks, application drafts, private
+data handling, and watch and notification logic. The validator checks skill
+metadata, references, manifests, symlinks, and local README links. These checks
+do not exercise live portals, browser sessions, or real notification delivery.
+
+Document user-visible changes in [CHANGELOG.md](CHANGELOG.md). English is
+canonical; keep the German README in sync. Cite official sources and dates for
+legal or city guidance, distinguish heuristics from law, and retain the
+“orientation, not legal advice” disclaimer. Report security issues using
+[SECURITY.md](SECURITY.md), not a public bug report.
